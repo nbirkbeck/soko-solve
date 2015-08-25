@@ -1,0 +1,59 @@
+<html>
+  <head>
+  <style>
+   #canvas {
+     width: 288px;
+     height: 480px;
+   }
+  </style>
+  <script src="box_pusher.js"></script>
+  </head>
+  <body>
+    <canvas id="canvas" width='288' height='480'>
+    </canvas>
+
+    <script>
+      var canvas = document.getElementById('canvas');
+      var context = canvas.getContext('2d');
+      var level = new Level(
+        '    #####   \n' + 
+        '    #   #   \n' +
+        ' ####   #   \n' +
+        ' # xx b #   \n' +
+        ' #   b  #   \n' +
+        ' #   *  #   \n' +
+        ' ########   \n');
+      level = new Level(
+        ' ######   \n' + 
+        ' #    ##  \n' +
+        ' # b b ## \n' + 
+        ' ## bb  # \n' +
+        '  # #   # \n' +
+        '  # ## ## \n' +
+        '  #  x x# \n' +
+        '  # *x x# \n' +
+        '  #  #### \n' +
+        '  ####    \n');
+      level.draw(context);
+      
+      document.addEventListener('keypress', function(event) {
+       if (event.keyCode == 119) {
+         level.move(Directions.UP);
+       }
+       if (event.keyCode == 97) {
+         level.move(Directions.LEFT);
+       }
+       if (event.keyCode == 100) {
+         level.move(Directions.RIGHT);
+       }
+       if (event.keyCode == 115) {
+         level.move(Directions.DOWN);
+       }
+       if (event.keyCode == 32) {
+          level.solve();
+       }
+       level.draw(context);
+      });
+    </script>
+  </body>
+</html>
