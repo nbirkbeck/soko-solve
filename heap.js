@@ -4,19 +4,19 @@ var Heap = function() {
   this.map_ = {};
 };
 
-Heap.prototype.push = function(value, score) {
-  var index = this.data_.length;
-  this.data_[index] = {score: score, value: value};
-  this.map_[value.id] = index;
-  this.siftUp_(index);
-};
-
 Heap.prototype.size = function() {
     return this.data_.length;
 };
 
 Heap.prototype.empty = function() {
     return this.data_.length == 0;
+};
+
+Heap.prototype.push = function(value, score) {
+  var index = this.data_.length;
+  this.data_[index] = {score: score, value: value};
+  this.map_[value.id] = index;
+  this.siftUp_(index);
 };
 
 Heap.prototype.pop = function() {
