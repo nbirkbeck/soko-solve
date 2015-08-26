@@ -133,6 +133,7 @@ Level.prototype.getInitialState = function() {
 
 Level.prototype.solve = function(state) {
     if (this.solution === undefined) {
+	var startTime = Date.now();
 	var heuristic = new SimpleHeuristic(this);
 	var info = {
 	    'state': state,
@@ -141,7 +142,7 @@ Level.prototype.solve = function(state) {
 	    'parent': null,
 	    'id': state.id()
 	};
-	var Q = new Heap();
+	var Q = new Heap(); // Queue();
 	var numVisited = 0;
 	var visited = {};
 	Q.push(info, info.h);
@@ -167,7 +168,7 @@ Level.prototype.solve = function(state) {
 		break;
 	    }
 	    var neighbors = this.getNeighbors(info.state);
-	    for (var i = 0; i < neighbors.length; ++i) {
+	    for (var i = 0, length = neighbors.length; i < length; ++i) {
                 var id = neighbors[i].id();
 		if (visited[id]) continue;
 
@@ -188,6 +189,9 @@ Level.prototype.solve = function(state) {
 		}
 	    }
 	}
+	var endTime = Date.now();
+	var duration = (endTime - startTime) / 1000.0;
+	console.log(duration);
     }
     if (this.solution.length > 0) {
 	return this.solution.pop();

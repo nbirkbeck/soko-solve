@@ -1,4 +1,11 @@
 
+var NullHeuristic = function(opt_level) {
+};
+
+NullHeuristic.prototype.eval = function(state) {
+    return 0;
+};
+
 var SimpleHeuristic = function(level) {
     this.level = level;
 };
