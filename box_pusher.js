@@ -134,7 +134,7 @@ Level.prototype.getInitialState = function() {
 Level.prototype.solve = function(state) {
     if (this.solution === undefined) {
 	var startTime = Date.now();
-	var heuristic = new SimpleHeuristic(this);
+	var heuristic = new BetterHeuristic(this);
 	var info = {
 	    'state': state,
 	    'g': 0,
