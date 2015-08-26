@@ -6,6 +6,7 @@
      height: 480px;
    }
   </style>
+  <script src="heap.js"></script>
   <script src="box_pusher.js"></script>
   </head>
   <body>
@@ -13,6 +14,12 @@
     </canvas>
 
     <script>
+      var heap = new Heap(function(x) {return x;});
+      heap.push("Neil", 1);
+      heap.push("Leslie", 10);
+      heap.updateIfBetter("Leslie", 0);
+      console.log(heap.pop());
+
       var canvas = document.getElementById('canvas');
       var context = canvas.getContext('2d');
       var level = new Level(

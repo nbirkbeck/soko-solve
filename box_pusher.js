@@ -4,8 +4,8 @@
  * @enum {number}
  */
 var CellTypes = {
-    EMPTY: 0x0,
-    WALL: 0x1,
+    WALL: 0x0,
+    EMPTY: 0x1,
     CROSS: 0x2
 };
 
@@ -31,6 +31,8 @@ Level.prototype.loadLevel = function(textGrid) {
   this.grid = [];
   this.startPos = [];
   this.boxes = [];
+  this.crosses = [];
+
   for (var i = 0; i < rows.length; ++i) {
       var row = [];
       for (var j = 0; j < rows[i].length; ++j) {
@@ -39,6 +41,7 @@ Level.prototype.loadLevel = function(textGrid) {
 	      row[j] = CellTypes.WALL;
 	  } else if (rows[i][j] == 'x') {
 	      row[j] = CellTypes.CROSS;
+	      this.crosses.push([j, i]);
 	  } else if (rows[i][j] == '*') {
 	      this.startPos = [j, i];
 	      this.pos = [j, i];
@@ -62,7 +65,6 @@ Level.prototype.draw = function(context) {
 		context.fillRect(j * BLOCK_SIZE, i * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
 		context.strokeRect(j * BLOCK_SIZE, i * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
 	    } else if (this.grid[i][j] == CellTypes.CROSS) {
-		console.log('line');
 		context.strokeWidth = 6;
 		context.strokeStyle = '#0F0';
 		context.beginPath();
@@ -97,12 +99,11 @@ Level.prototype.move = function(direction) {
     var n2 = this.getCellType(pos2);
     var b1 = this.getBlockIndex(pos1);
     var b2 = this.getBlockIndex(pos2);
-    if (n1 === CellTypes.EMPTY || n1 === CellTypes.CROSS) {
+    if (n1 >= CellTypes.EMPTY) {
 	if (b1 < 0) {
 	    this.pos = pos1;
 	    return true;
-	} else if ((n2 == CellTypes.EMPTY || 
-		    n2 == CellTypes.CROSS) && b2 < 0) {
+	} else if (n2 >= CellTypes.EMPTY && b2 < 0) {
 	    this.pos = pos1;
 	    this.boxes[b1] = pos2;
 	    return true;
@@ -154,55 +155,121 @@ Level.prototype.isGoal = function() {
 
 Level.prototype.getState = function() {
     var sorted = this.boxes.sort(function(a, b) { 
-       return b[1]*64 + b[0] - a[1]*64 + a[0];
+      return (b[1]*64 + b[0]) - (a[1]*64 + a[0]);
     });
     var state = [this.hash(this.pos)];
-    for (var i = 0; i < sorted.length; ++i) {
+    var length = sorted.length;
+    for (var i = 0; i < length; ++i) {
        state[i + 1] = this.hash(sorted[i]);
     }
     return state;
 };
 
 Level.prototype.setState = function(state) {
+    this.pos[0] = state[0] % 64;
     this.pos[1] = Math.floor(state[0] / 64);
-    this.pos[0] = Math.floor(state[0] % 64);
-    for (var i = 1; i < state.length; ++i) {
-	this.boxes[i - 1] = [state[i] % 64, Math.floor(state[i] / 64)];
+
+    for (var i = 1, length = state.length; i < length; ++i) {
+	this.boxes[i - 1][0] = state[i] % 64;
+	this.boxes[i - 1][1] = Math.floor(state[i] / 64);
     }
 };
 
 Level.prototype.hash = function(pos) {
     return pos[1]*64 + pos[0];
-}
+};
+
+Level.prototype.h = function() {
+    var value = 0;
+    var minBoxDistance = 1000;
+    for (var i = 0, numBoxes = this.boxes.length; i < numBoxes; ++i) {
+	var minDist = 1e10;
+	var box = this.boxes[i];
+	for (var j = 0, numCrosses = this.crosses.length; j < numCrosses; ++j) {
+	    var dist = Math.abs(this.crosses[j][0] - box[0]) +
+		Math.abs(this.crosses[j][1] - box[1]);
+	    if (dist < minDist) {
+		minDist = dist;
+	    }
+	}
+	var upBlocked = this.getCellType([box[0], box[1] - 1]) < CellTypes.EMPTY;
+	var downBlocked = this.getCellType([box[0], box[1] + 1]) < CellTypes.EMPTY;
+	var leftBlocked = this.getCellType([box[0] - 1, box[1]]) < CellTypes.EMPTY;
+	var rightBlocked = this.getCellType([box[0] + 1, box[1]]) < CellTypes.EMPTY;
+	if (minDist > 0) {
+	    var sideBlocked = leftBlocked || rightBlocked;
+	    var topBlocked = upBlocked || downBlocked;
+	    if (upBlocked && sideBlocked) {
+		return 1000;
+	    }
+	}
+	value += minDist;
+	var boxDistance = Math.abs(box[0] - this.pos[0]) + 
+	    Math.abs(box[1] - this.pos[1]);
+	if (boxDistance < minBoxDistance)
+	    minBoxDistance = boxDistance;
+    }
+    return value + minBoxDistance;
+};
 
 Level.prototype.solve = function() {
     if (this.solution === undefined) {
 	var originalState = this.getState();
-	var Q = [originalState];
-	var inQ = {};
-	inQ[originalState.join()] = null;
+	var hash = function(state) {
+          return state.join();
+	};
+	var info = {
+	    'state': originalState,
+	    'g': 0,
+	    'h': this.h(),
+	    'parent': null,
+	    'id': hash(originalState)
+	};
+	var Q = new Heap();
+	var numVisited = 0;
+	var visited = {};
+	Q.push(info, info.h);
 
-	while (Q.size != 0) {
-	    var top = Q.shift();
-	    this.setState(top);
+	while (!Q.empty()) {
+	    var top = Q.pop();
+	    info = top.value;
+	    if (numVisited % 500 == 0)
+		console.log(top.score + ' ' + numVisited + ' ' + Q.size());
+
+	    this.setState(info.state);
+	    visited[info.state.join()] = true;
+	    numVisited++;
+
 	    if (this.isGoal()) {
 		// Backtrack the solution.
-		var state = top;
 		this.solution = [];
-		while (inQ[state] !== null) {
-		    this.solution.push(state);
-		    state = inQ[state][0];
+		while (info.parent != null) {
+		    this.solution.push(info.state);
+		    info = info.parent;
 		}
-		this.solution.push(state);
+		this.solution.push(info.state);
 		console.log(this.solution.length);
 		break;
 	    }
 	    var neighbors = this.getNeighbors();
 	    for (var i = 0; i < neighbors.length; ++i) {
-		var key = neighbors[i][1].join();
-		if (inQ[key] === undefined) {
-		    inQ[key] = [top, neighbors[i][0]];
-		    Q.push(neighbors[i][1]);
+                var id = hash(neighbors[i][1]);
+		if (visited[id]) continue;
+		this.setState(neighbors[i][1]);
+		var g = info.g + 1;
+		var h = this.h();
+		var f = g + h;
+		var child = {
+		    'state': neighbors[i][1],
+		    'g': g,
+		    'h': h,
+		    'parent': info,
+		    'id': id
+		};
+		if (Q.exists(child)) {
+		    Q.updateIfBetter(child, f);
+		} else {
+		    Q.push(child, f);
 		}
 	    }
 	}

@@ -1,6 +1,5 @@
 
-var Heap = function(hash) {
-  this.hash_ = hash;
+var Heap = function() {
   this.data_ = [];
   this.map_ = {};
 };
@@ -8,8 +7,12 @@ var Heap = function(hash) {
 Heap.prototype.push = function(value, score) {
   var index = this.data_.length;
   this.data_[index] = {score: score, value: value};
-  this.map_[this.hash_(value)] = index;
+  this.map_[value.id] = index;
   this.siftUp_(index);
+};
+
+Heap.prototype.size = function() {
+    return this.data_.length;
 };
 
 Heap.prototype.empty = function() {
@@ -20,13 +23,28 @@ Heap.prototype.pop = function() {
     this.swap_(0, this.data_.length - 1);
     var v = this.data_[this.data_.length - 1];
     this.data_.length--;
-    this.map_[this.hash_(v)] = undefined;
+    this.map_[v.value.id] = undefined;
     this.siftDown_(0);
     return v;
 };
 
+Heap.prototype.updateIfBetter = function(value, score) {
+    var index = this.map_[value.id];
+
+    if (score < this.data_[index].score) {
+	this.data_[index].score = score;
+	this.data_[index].value = value;
+	this.siftUp_(index);
+    }
+};
+
+Heap.prototype.exists = function(value) {
+    return this.map_[value.id] !== undefined;
+};
+
 Heap.prototype.siftDown_ = function(index) {
-  while (2 * index + 1 < this.data_.length) {
+  var n = this.data_.length;
+  while (2 * index + 1 < n) {
       var i1 = 2*index + 1;
       var i2 = 2*index + 2;
       var child = i2;
@@ -59,6 +77,6 @@ Heap.prototype.swap_ = function(i1, i2) {
   var v = this.data_[i1];
   this.data_[i1] = this.data_[i2];
   this.data_[i2] = v;
-  this.map_[this.hash_(this.data_[i1].value)] = i1;
-  this.map_[this.hash_(this.data_[i2].value)] = i2;
+  this.map_[this.data_[i1].value.id] = i1;
+  this.map_[this.data_[i2].value.id] = i2;
 };
