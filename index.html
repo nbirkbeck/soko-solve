@@ -53,19 +53,20 @@
       level.draw(state, context);
       
       document.addEventListener('keypress', function(event) {
-       if (event.keyCode == 119) {
+       var code = event.keyCode || event.charCode;
+       if (code == 119) {
          level.move(state, constants.Directions.UP);
        }
-       if (event.keyCode == 97) {
+       if (code == 97) {
          level.move(state, constants.Directions.LEFT);
        }
-       if (event.keyCode == 100) {
+       if (code == 100) {
          level.move(state, constants.Directions.RIGHT);
        }
-       if (event.keyCode == 115) {
+       if (code == 115) {
          level.move(state, constants.Directions.DOWN);
        }
-       if (event.keyCode == 32) {
+       if (code == 32) {
          if (solution === undefined) {
            solution = solver.solve(level, state);
            state = solution.pop();

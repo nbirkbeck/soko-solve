@@ -116,19 +116,26 @@ Level.prototype.getNeighbors = function(state) {
     return neighbors;
 };
 
-Level.prototype.getNeighborsAdvanced = function(state) {
-    var neighbors = [];
+Level.prototype.computeShortestPath = function(state, opt_target) {
     var vis = {};
     var Q = [];
-    var pos = [state.pos[0], state.pos[1], 1];
+    var pos = [state.pos[0], state.pos[1], 1, []];
     vis[State.hash(pos)] = 1;
     Q.push(pos);
 
     // Do a BFS to find all reachable states.
     while (Q.length > 0) {
 	pos = Q.shift();
+        if (opt_target && pos[0] == opt_target[0] && pos[1] == opt_target[1]) {
+            var solution = [];
+	    do {
+		solution.push([pos[0], pos[1]]);
+		pos = pos[3];
+  	    } while (pos.length > 3);
+	    return solution;
+        }
 	for (var j = 0; j < 4; ++j) {
-	    var neighPos = [deltas[j][0] + pos[0], deltas[j][1] + pos[1], 1 + pos[2]];
+	    var neighPos = [deltas[j][0] + pos[0], deltas[j][1] + pos[1], 1 + pos[2], pos];
 	    var cellType = this.getCellType(neighPos);
 	    var boxIndex = state.getBlockIndex(neighPos);
 	    if (cellType >= constants.CellTypes.EMPTY && boxIndex < 0) {
@@ -140,7 +147,12 @@ Level.prototype.getNeighborsAdvanced = function(state) {
 	    }
 	}
     }
+    return vis;
+};
+
+Level.prototype.getNeighborsAdvanced = function(state) {
     var neighbors = [];
+    var vis = this.computeShortestPath(state);
     for (var i = 0; i < state.boxes.length; ++i) {
 	var box = state.boxes[i];
 	for (var j = 0; j < 4; ++j) {
@@ -156,7 +168,7 @@ Level.prototype.getNeighborsAdvanced = function(state) {
 	    if (distance !== undefined) {
 		var neighState = new State(box, state.boxes);
 		neighState.boxes[i] = target;
-		neighbors.push([distance, neighState]);
+		neighbors.push([distance, neighState, pusher]);
 	    }
 	}
     }

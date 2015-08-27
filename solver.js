@@ -38,18 +38,7 @@ Solver.prototype.solve = function(level, state) {
 	numVisited++;
 	
 	if (level.isGoal(info.state)) {
-	    if (this.print) {
-		console.log(info);
-	    }
-	    // Backtrack the solution.
-	    while (info.parent != null) {
-		solution.push(info.state);
-		info = info.parent;
-	    }
-	    solution.push(info.state);
-	    if (this.print) {
-		console.log(solution.length);
-	    }
+	    solution = this.backtrack_(info);
 	    break;
 	}
 	var neighbors = getNeighbors(info.state);
@@ -62,6 +51,7 @@ Solver.prototype.solve = function(level, state) {
 	    var f = g + h;
 	    var child = {
 		'state': neighbors[i][1],
+		'pusher': neighbors[i][2],
 		'g': g,
 		'h': h,
 		'parent': info,
@@ -79,4 +69,32 @@ Solver.prototype.solve = function(level, state) {
     var duration = (endTime - startTime) / 1000.0;
     if (this.print) console.log('numVisited:' + numVisited + ' duration:' + duration);
     return solution;
+};
+
+
+Solver.prototype.backtrack_ = function(info) {
+  var solution = [];
+  if (this.print) {
+    console.log(info);
+  }
+  // Backtrack the solution.
+  do {
+    var parent = info.parent;
+    if (parent != null && info.pusher) {
+	var path = level.computeShortestPath(parent.state, info.pusher);
+	solution.push(info.state);
+	for (var i = 0; i < path.length - 1; i++) {
+	    var state = new State(path[i], parent.state.boxes);
+	    solution.push(state);
+	}
+    } else {
+      solution.push(info.state);
+    }
+    info = info.parent;
+  } while (info != null);
+
+  if (this.print) {
+    console.log(solution.length);
+  }
+  return solution;
 };
