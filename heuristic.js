@@ -11,7 +11,7 @@ function factorial(x) {
 function isInvalid(level, state) {
     for (var i = 0, numBoxes = state.boxes.length; i < numBoxes; ++i) {
 	var box = state.boxes[i];
-	if (level.getCellType([box[0], box[1]]) == constants.CellTypes.CROSS)
+	if (level.getCellType(box) == constants.CellTypes.CROSS)
 	    continue;
 	var upBlocked = level.getCellType([box[0], box[1] - 1]) < constants.CellTypes.EMPTY;
 	var downBlocked = level.getCellType([box[0], box[1] + 1]) < constants.CellTypes.EMPTY;
@@ -30,6 +30,17 @@ var NullHeuristic = function(opt_level) {
 };
 
 NullHeuristic.prototype.eval = function(state) {
+    return 0;
+};
+
+var InvalidHeuristic = function(level) {
+    this.level = level;
+};
+
+InvalidHeuristic.prototype.eval = function(state) {
+    if (isInvalid(this.level, state)) {
+	return 1000;
+    }
     return 0;
 };
 
@@ -101,7 +112,7 @@ BetterHeuristic.prototype.eval = function(state) {
 	}
 	dists = dists.sort();
 	for (var k = 0; k < dists.length - 1; ++k) {
-	    value += dists[k];
+	    //	    value += dists[k];
 	}
 	if (value < minValue) {
 	    minValue = value;
@@ -109,3 +120,43 @@ BetterHeuristic.prototype.eval = function(state) {
     }
     return minValue;
 };
+
+
+var AbstractHeuristic = function(level) {
+    this.level = level;
+    this.abstractLevels = [];
+    this.cache = {};
+    var numBoxes = level.boxes.length;
+    this.abstractionSize = 1; // numBoxes >= 4 ? 2 : 1;
+    for (var i = 0; i < numBoxes; i += this.abstractionSize) {
+	this.abstractLevels.push(level.createAbstraction(i, 
+	    Math.min(numBoxes, i + this.abstractionSize)));
+    }
+    this.solver = new Solver(SimpleHeuristic, Heap);
+};
+
+AbstractHeuristic.prototype.eval = function(state) {
+    var value = 0;
+    for (var i = 0; i < this.abstractLevels.length; i++) {
+	var start = this.abstractionSize * i;
+	var end = Math.min(state.boxes.length, start + this.abstractionSize);
+	var abstractState = state.createAbstraction(start, end);
+	var id = abstractState.id();
+	var thisValue = this.cache[id];
+	if (thisValue === undefined) {
+	    var solution = this.solver.solve(this.abstractLevels[i], abstractState);
+	    thisValue = solution.length - 1;
+	    if (thisValue < 0) {
+		thisValue = 10000;
+	    }
+	    this.cache[id] = thisValue;
+	    for (var j = 0; j < solution.length; j++) {
+		this.cache[solution[j].id()] = j;
+	    }
+	}
+	value = Math.max(value, thisValue);
+    }
+    return value;
+};
+
+

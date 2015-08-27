@@ -1,10 +1,14 @@
 
+var deltas = [[0, -1], [0, 1], [-1, 0], [1, 0]];
 
-var Level = function(textGrid) {
+var Level = function(opt_textGrid) {
   this.grid = undefined;
   this.startPos = undefined;
   this.boxes = undefined;
-  this.loadLevel(textGrid);
+  this.crosses = [];
+  if (opt_textGrid) {
+      this.loadLevel(opt_textGrid);
+  }
 };
 
 Level.prototype.loadLevel = function(textGrid) {
@@ -73,7 +77,6 @@ Level.prototype.draw = function(state, context) {
 };
 
 Level.prototype.move = function(state, direction) {
-    var deltas = [[0, -1], [0, 1], [-1, 0], [1, 0]];
     var offset = deltas[direction];
     var pos1 = [state.pos[0] + offset[0], state.pos[1] + offset[1]];
     var pos2 = [state.pos[0] + offset[0]*2, state.pos[1] + offset[1]*2];
@@ -97,9 +100,7 @@ Level.prototype.move = function(state, direction) {
 
 Level.prototype.getCellType = function(pos) {
     if (pos[1] >= 0 && pos[1] < this.grid.length) {
-	if (pos[0] >= 0 && pos[0] < this.grid[pos[1]].length) {
-	    return this.grid[pos[1]][pos[0]];
-	}
+	return this.grid[pos[1]][pos[0]];
     }
     return undefined;
 };
@@ -109,7 +110,54 @@ Level.prototype.getNeighbors = function(state) {
     for (var i = 0; i < 4; ++i) {
 	var neighState = new State(state.pos, state.boxes);
 	if (this.move(neighState, i)) {
-	    neighbors[neighbors.length] = neighState;
+	    neighbors.push([1, neighState]);
+	}
+    }
+    return neighbors;
+};
+
+Level.prototype.getNeighborsAdvanced = function(state) {
+    var neighbors = [];
+    var vis = {};
+    var Q = [];
+    var pos = [state.pos[0], state.pos[1], 1];
+    vis[State.hash(pos)] = 1;
+    Q.push(pos);
+
+    // Do a BFS to find all reachable states.
+    while (Q.length > 0) {
+	pos = Q.shift();
+	for (var j = 0; j < 4; ++j) {
+	    var neighPos = [deltas[j][0] + pos[0], deltas[j][1] + pos[1], 1 + pos[2]];
+	    var cellType = this.getCellType(neighPos);
+	    var boxIndex = state.getBlockIndex(neighPos);
+	    if (cellType >= constants.CellTypes.EMPTY && boxIndex < 0) {
+		var id = State.hash(neighPos);
+		if (vis[id] === undefined) {
+		    vis[id] = neighPos[2];
+		    Q.push(neighPos);
+		}
+	    }
+	}
+    }
+    var neighbors = [];
+    for (var i = 0; i < state.boxes.length; ++i) {
+	var box = state.boxes[i];
+	for (var j = 0; j < 4; ++j) {
+	    var target = [box[0] + deltas[j][0], box[1] + deltas[j][1]];
+	    var targetType = this.getCellType(target);
+	    if (targetType < constants.CellTypes.EMPTY) continue;
+
+	    var targetBox = state.getBlockIndex(target);
+	    if (targetBox >= 0) continue;
+
+	    var pusher = [box[0] - deltas[j][0], box[1] - deltas[j][1]];
+	    var distance = vis[State.hash(pusher)];
+	    if (distance !== undefined) {
+		var neighState = new State(box, state.boxes);
+		neighState.boxes[i] = target;
+		neighbors.push([distance, neighState]);
+	    }
 	}
     }
     return neighbors;
@@ -117,8 +165,7 @@ Level.prototype.getNeighbors = function(state) {
 
 Level.prototype.isGoal = function(state) {
     for (var i = 0; i < state.boxes.length; ++i) {
-	var box = state.boxes[i];
-	var type = this.getCellType(box);
+	var type = this.getCellType(state.boxes[i]);
 	if (type != constants.CellTypes.CROSS) {
 	    return false;
 	}
@@ -130,73 +177,17 @@ Level.prototype.getInitialState = function() {
     return new State(this.startPos, this.boxes);
 };
 
-
-Level.prototype.solve = function(state) {
-    if (this.solution === undefined) {
-	var startTime = Date.now();
-	var heuristic = new BetterHeuristic(this);
-	var info = {
-	    'state': state,
-	    'g': 0,
-	    'h': heuristic.eval(state),
-	    'parent': null,
-	    'id': state.id()
-	};
-	var Q = new Heap(); // Queue();
-	var numVisited = 0;
-	var visited = {};
-	Q.push(info, info.h);
-
-	while (!Q.empty()) {
-	    var top = Q.pop();
-	    info = top.value;
-	    if (numVisited % 500 == 0)
-		console.log(top.score + ' ' + numVisited + ' ' + Q.size());
-
-	    visited[info.id] = true;
-	    numVisited++;
-
-	    if (this.isGoal(info.state)) {
-		// Backtrack the solution.
-		this.solution = [];
-		while (info.parent != null) {
-		    this.solution.push(info.state);
-		    info = info.parent;
-		}
-		this.solution.push(info.state);
-		console.log(this.solution.length);
-		break;
-	    }
-	    var neighbors = this.getNeighbors(info.state);
-	    for (var i = 0, length = neighbors.length; i < length; ++i) {
-                var id = neighbors[i].id();
-		if (visited[id]) continue;
-
-		var g = info.g + 1;
-		var h = heuristic.eval(neighbors[i]);
-		var f = g + h;
-		var child = {
-		    'state': neighbors[i],
-		    'g': g,
-		    'h': h,
-		    'parent': info,
-		    'id': id
-		};
-		if (Q.exists(child)) {
-		    Q.updateIfBetter(child, f);
-		} else {
-		    Q.push(child, f);
-		}
-	    }
-	}
-	var endTime = Date.now();
-	var duration = (endTime - startTime) / 1000.0;
-	console.log(duration);
+Level.prototype.createAbstraction = function(start, end) {
+    var level = new Level();
+    level.grid = this.grid;
+    level.startPos = this.startPos;
+    level.crosses = this.crosses;
+    level.boxes = [];
+    for (var i = start; i < end; i++) {
+	level.boxes.push(this.boxes[i].slice(0, 2));
     }
-    if (this.solution.length > 0) {
-	return this.solution.pop();
-    }
-    return state;
+    return level;
 };
+
 
 

@@ -10,6 +10,7 @@
   <script src="heap.js"></script>
   <script src="queue.js"></script>
   <script src="heuristic.js"></script>
+  <script src="solver.js"></script>
   <script src="state.js"></script>
   <script src="box_pusher.js"></script>
   </head>
@@ -18,6 +19,7 @@
     </canvas>
 
     <script>
+      var solution;
       var heap = new Heap(function(x) {return x;});
       heap.push("Neil", 1);
       heap.push("Leslie", 10);
@@ -34,18 +36,20 @@
         ' #   b  #   \n' +
         ' #   *  #   \n' +
         ' ########   \n');
-      level1 = new Level(
-        ' ######   \n' + 
-        ' #    ##  \n' +
-        ' # b b ## \n' + 
-        ' ## bb  # \n' +
-        '  # #   # \n' +
-        '  # ## ## \n' +
-        '  #  x x# \n' +
-        '  # *x x# \n' +
-        '  #  #### \n' +
-        '  ####    \n');
+      level = new Level(
+        '######   \n' + 
+        '#    ##  \n' +
+        '# b b ## \n' + 
+        '## bb  # \n' +
+        ' # #   # \n' +
+        ' # ## ## \n' +
+        ' #  x x# \n' +
+        ' # *x x# \n' +
+        ' #  #### \n' +
+        ' ####    \n');
       var state = level.getInitialState();
+      var solver = new Solver(AbstractHeuristic, Heap, true);
+      solver.print = true;
       level.draw(state, context);
       
       document.addEventListener('keypress', function(event) {
@@ -62,7 +66,12 @@
          level.move(state, constants.Directions.DOWN);
        }
        if (event.keyCode == 32) {
-         state = level.solve(state);
+         if (solution === undefined) {
+           solution = solver.solve(level, state);
+           state = solution.pop();
+         } else if (solution.length) {
+           state = solution.pop();
+         }
        }
        level.draw(state, context);
       });
