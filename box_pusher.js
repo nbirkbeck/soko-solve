@@ -1,15 +1,20 @@
+goog.provide('push.Level');
 
-var deltas = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+goog.require('push.constants');
 
-var Level = function(opt_textGrid) {
-  this.grid = undefined;
-  this.startPos = undefined;
-  this.boxes = undefined;
+goog.scope(function() {
+var constants = push.constants;
+
+push.Level = function(opt_textGrid) {
+  this.grid = [];
+  this.startPos = []
+  this.boxes = [];
   this.crosses = [];
   if (opt_textGrid) {
       this.loadLevel(opt_textGrid);
   }
 };
+var Level = push.Level;
 
 Level.prototype.loadLevel = function(textGrid) {
   var rows = textGrid.split('\n'); 
@@ -200,6 +205,6 @@ Level.prototype.createAbstraction = function(start, end) {
     }
     return level;
 };
-
+});
 
 

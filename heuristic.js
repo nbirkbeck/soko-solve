@@ -1,3 +1,4 @@
+goog.provide('heuristic');
 
 function factorial(x) {
     var result = 1;
