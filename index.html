@@ -6,76 +6,21 @@
      height: 480px;
    }
   </style>
-  <script src="constants.js"></script>
+  <script src="output.js"></script>
+<!--
   <script src="heap.js"></script>
   <script src="queue.js"></script>
   <script src="heuristic.js"></script>
   <script src="solver.js"></script>
   <script src="state.js"></script>
-  <script src="box_pusher.js"></script>
+-->
   </head>
   <body>
     <canvas id="canvas" width='288' height='480'>
     </canvas>
 
     <script>
-      var solution;
-      var heap = new Heap(function(x) {return x;});
-      heap.push("Neil", 1);
-      heap.push("Leslie", 10);
-      heap.updateIfBetter("Leslie", 0);
-      console.log(heap.pop());
-
-      var canvas = document.getElementById('canvas');
-      var context = canvas.getContext('2d');
-      var level = new Level(
-        '    #####   \n' + 
-        '    #   #   \n' +
-        ' ####   #   \n' +
-        ' # xx b #   \n' +
-        ' #   b  #   \n' +
-        ' #   *  #   \n' +
-        ' ########   \n');
-      level = new Level(
-        '######   \n' + 
-        '#    ##  \n' +
-        '# b b ## \n' + 
-        '## bb  # \n' +
-        ' # #   # \n' +
-        ' # ## ## \n' +
-        ' #  x x# \n' +
-        ' # *x x# \n' +
-        ' #  #### \n' +
-        ' ####    \n');
-      var state = level.getInitialState();
-      var solver = new Solver(AbstractHeuristic, Heap, true);
-      solver.print = true;
-      level.draw(state, context);
-      
-      document.addEventListener('keypress', function(event) {
-       var code = event.keyCode || event.charCode;
-       if (code == 119) {
-         level.move(state, constants.Directions.UP);
-       }
-       if (code == 97) {
-         level.move(state, constants.Directions.LEFT);
-       }
-       if (code == 100) {
-         level.move(state, constants.Directions.RIGHT);
-       }
-       if (code == 115) {
-         level.move(state, constants.Directions.DOWN);
-       }
-       if (code == 32) {
-         if (solution === undefined) {
-           solution = solver.solve(level, state);
-           state = solution.pop();
-         } else if (solution.length) {
-           state = solution.pop();
-         }
-       }
-       level.draw(state, context);
-      });
+      push.game();
     </script>
   </body>
 </html>

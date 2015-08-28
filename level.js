@@ -5,6 +5,11 @@ goog.require('push.constants');
 goog.scope(function() {
 var constants = push.constants;
 
+
+/**
+ * @param {string=} opt_textGrid Optional level to load (as a string).
+ * @constructor
+ */
 push.Level = function(opt_textGrid) {
   this.grid = [];
   this.startPos = []
@@ -16,6 +21,11 @@ push.Level = function(opt_textGrid) {
 };
 var Level = push.Level;
 
+
+/**
+ * @param {string} Text grid.
+ * @export
+ */
 Level.prototype.loadLevel = function(textGrid) {
   var rows = textGrid.split('\n'); 
   this.grid = [];
@@ -44,6 +54,13 @@ Level.prototype.loadLevel = function(textGrid) {
   }
 };
 
+
+/**
+ * Draws the level to the given context.
+ * @param {!push.State}
+ * @param {Object}
+ * @export
+ */
 Level.prototype.draw = function(state, context) {
     var BLOCK_SIZE = constants.BLOCK_SIZE;
     context.fillStyle = '#FFF';
@@ -81,10 +98,17 @@ Level.prototype.draw = function(state, context) {
     context.stroke();
 };
 
+
+/**
+ * Moves the player in the current state. Returns true if possible.
+ * @param {!push.State} state the current state
+ * @param {!push.constants.Directions} direction
+ * @return {boolean}
+ */
 Level.prototype.move = function(state, direction) {
-    var offset = deltas[direction];
-    var pos1 = [state.pos[0] + offset[0], state.pos[1] + offset[1]];
-    var pos2 = [state.pos[0] + offset[0]*2, state.pos[1] + offset[1]*2];
+    var offset = push.constants.DELTAS[direction];
+    var pos1 = push.math.vectorAdd(state.pos, offset);
+    var pos2 = push.math.vectorAdd(state.pos, offset, 2);
     var n1 = this.getCellType(pos1);
     var n2 = this.getCellType(pos2);
     var b1 = state.getBlockIndex(pos1);
@@ -103,6 +127,11 @@ Level.prototype.move = function(state, direction) {
     return false;
 };
 
+
+/**
+ * @param {!push.types.GridPoint} pos
+ * @return {undefined|constants.CellTypes}
+ */
 Level.prototype.getCellType = function(pos) {
     if (pos[1] >= 0 && pos[1] < this.grid.length) {
 	return this.grid[pos[1]][pos[0]];
@@ -110,10 +139,15 @@ Level.prototype.getCellType = function(pos) {
     return undefined;
 };
 
+
+/**
+ * @param {!push.State} state
+ * @return {!Array.<!Array<{number|push.State}>>}
+ */
 Level.prototype.getNeighbors = function(state) {
     var neighbors = [];
     for (var i = 0; i < 4; ++i) {
-	var neighState = new State(state.pos, state.boxes);
+	var neighState = new push.State(state.pos, state.boxes);
 	if (this.move(neighState, i)) {
 	    neighbors.push([1, neighState]);
 	}
@@ -121,11 +155,17 @@ Level.prototype.getNeighbors = function(state) {
     return neighbors;
 };
 
+
+/**
+ * @param {!push.State} state
+ * @param {!push.types.GridPoint} opt_target
+ * @return {Object}
+ */
 Level.prototype.computeShortestPath = function(state, opt_target) {
     var vis = {};
     var Q = [];
     var pos = [state.pos[0], state.pos[1], 1, []];
-    vis[State.hash(pos)] = 1;
+    vis[push.State.hash(pos)] = 1;
     Q.push(pos);
 
     // Do a BFS to find all reachable states.
@@ -140,11 +180,12 @@ Level.prototype.computeShortestPath = function(state, opt_target) {
 	    return solution;
         }
 	for (var j = 0; j < 4; ++j) {
-	    var neighPos = [deltas[j][0] + pos[0], deltas[j][1] + pos[1], 1 + pos[2], pos];
+	    var offset = push.constants.DELTAS[j];
+	    var neighPos = [offset[0] + pos[0], offset[1] + pos[1], 1 + pos[2], pos];
 	    var cellType = this.getCellType(neighPos);
 	    var boxIndex = state.getBlockIndex(neighPos);
 	    if (cellType >= constants.CellTypes.EMPTY && boxIndex < 0) {
-		var id = State.hash(neighPos);
+		var id = push.State.hash(neighPos);
 		if (vis[id] === undefined) {
 		    vis[id] = neighPos[2];
 		    Q.push(neighPos);
@@ -155,23 +196,29 @@ Level.prototype.computeShortestPath = function(state, opt_target) {
     return vis;
 };
 
+
+/**
+ * @param {!push.State} state
+ * @return {!Array.<!Array<{number|push.State}>>}
+ */
 Level.prototype.getNeighborsAdvanced = function(state) {
     var neighbors = [];
     var vis = this.computeShortestPath(state);
     for (var i = 0; i < state.boxes.length; ++i) {
 	var box = state.boxes[i];
 	for (var j = 0; j < 4; ++j) {
-	    var target = [box[0] + deltas[j][0], box[1] + deltas[j][1]];
+	    var offset = constants.DELTAS[j];
+	    var target = push.math.vectorAdd(box, offset)
 	    var targetType = this.getCellType(target);
 	    if (targetType < constants.CellTypes.EMPTY) continue;
 
 	    var targetBox = state.getBlockIndex(target);
 	    if (targetBox >= 0) continue;
 
-	    var pusher = [box[0] - deltas[j][0], box[1] - deltas[j][1]];
-	    var distance = vis[State.hash(pusher)];
+	    var pusher = push.math.vectorAdd(box, offset, -1);
+	    var distance = vis[push.State.hash(pusher)];
 	    if (distance !== undefined) {
-		var neighState = new State(box, state.boxes);
+		var neighState = new push.State(box, state.boxes);
 		neighState.boxes[i] = target;
 		neighbors.push([distance, neighState, pusher]);
 	    }
@@ -180,6 +227,11 @@ Level.prototype.getNeighborsAdvanced = function(state) {
     return neighbors;
 };
 
+
+/**
+ * @param {!push.State} state
+ * @return {boolean}
+ */
 Level.prototype.isGoal = function(state) {
     for (var i = 0; i < state.boxes.length; ++i) {
 	var type = this.getCellType(state.boxes[i]);
@@ -190,12 +242,22 @@ Level.prototype.isGoal = function(state) {
     return true;
 };
 
+
+/**
+ * @return {!push.State}
+ */
 Level.prototype.getInitialState = function() {
-    return new State(this.startPos, this.boxes);
+    return new push.State(this.startPos, this.boxes);
 };
 
+
+/**
+ * @param {number} start
+ * @param {number} end
+ * @return {!push.Level}
+ */
 Level.prototype.createAbstraction = function(start, end) {
-    var level = new Level();
+    var level = new push.Level();
     level.grid = this.grid;
     level.startPos = this.startPos;
     level.crosses = this.crosses;
@@ -205,6 +267,7 @@ Level.prototype.createAbstraction = function(start, end) {
     }
     return level;
 };
+
 });
 
 

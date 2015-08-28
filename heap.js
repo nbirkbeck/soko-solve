@@ -1,8 +1,16 @@
+goog.provide('push.Heap');
 
-var Heap = function() {
+goog.scope(function() {
+
+
+/**
+ * @constructor
+ */
+push.Heap = function() {
   this.data_ = [];
   this.map_ = {};
 };
+var Heap = push.Heap;
 
 Heap.prototype.size = function() {
     return this.data_.length;
@@ -80,3 +88,5 @@ Heap.prototype.swap_ = function(i1, i2) {
   this.map_[this.data_[i1].value.id] = i1;
   this.map_[this.data_[i2].value.id] = i2;
 };
+
+});

@@ -1,15 +1,17 @@
-goog.provide('heuristic');
+goog.provide('push.heuristic');
+goog.provide('push.heuristic.NullHeuristic');
+goog.provide('push.heuristic.InvalidHeuristic');
+goog.provide('push.heurisitc.SimplelHeuristic');
+goog.provide('push.heurisitc.AbstractHeuristic');
 
-function factorial(x) {
-    var result = 1;
-    while (x > 1) {
-	result *= x;
-	--x;
-    }
-    return result;
-}
+goog.require('push.math');
+goog.require('push.Heap');
+goog.require('push.constants');
 
-function isInvalid(level, state) {
+goog.scope(function() {
+var constants = push.constants;
+
+push.heuristic.isInvalid = function(level, state) {
     for (var i = 0, numBoxes = state.boxes.length; i < numBoxes; ++i) {
 	var box = state.boxes[i];
 	if (level.getCellType(box) == constants.CellTypes.CROSS)
@@ -25,34 +27,57 @@ function isInvalid(level, state) {
 	}
     }
     return false;
-}
-
-var NullHeuristic = function(opt_level) {
 };
 
-NullHeuristic.prototype.eval = function(state) {
+
+/**
+ * A null heuristic (doesn't give any estimate).
+ * @constructor
+ */
+push.heuristic.NullHeuristic = function(opt_level) {};
+
+push.heuristic.NullHeuristic.prototype.eval = function(state) {
     return 0;
 };
 
-var InvalidHeuristic = function(level) {
+
+
+/**
+ * An invalid heuristic (only gives high estimate to invalid states).
+ * @param {!push.Level} level
+ * @constructor
+ */
+push.heuristic.InvalidHeuristic = function(level) {
     this.level = level;
 };
 
-InvalidHeuristic.prototype.eval = function(state) {
-    if (isInvalid(this.level, state)) {
+
+/** @override */
+push.heuristic.InvalidHeuristic.prototype.eval = function(state) {
+    if (push.heuristic.isInvalid(this.level, state)) {
 	return 1000;
     }
     return 0;
 };
 
-var SimpleHeuristic = function(level) {
+
+/**
+ * A simple heuristic that uses manhattan distance.
+ * @param {!push.Level} level
+ * @constructor
+ */
+push.heuristic.SimpleHeuristic = function(level) {
     this.level = level;
 };
+var SimpleHeuristic = push.heuristic.SimpleHeuristic;
 
+
+/** @override */
 SimpleHeuristic.prototype.eval = function(state) {
     var value = 0;
     var minBoxDistance = 1000;
-    if (isInvalid(this.level, state)) {
+    var level = this.level;
+    if (push.heuristic.isInvalid(this.level, state)) {
 	return 1000;
     }
     for (var i = 0, numBoxes = state.boxes.length; i < numBoxes; ++i) {
@@ -74,23 +99,33 @@ SimpleHeuristic.prototype.eval = function(state) {
     return value + minBoxDistance;
 };
 
-var BetterHeuristic = function(level) {
+
+/**
+ * An attempt to get a better heuristic.
+ * @param {!push.Level} level
+ * @constructor
+ */
+push.heuristic.BetterHeuristic = function(level) {
     this.level = level;
 };
+var BetterHeuristic = push.heuristic.BetterHeuristic;
 
+
+/** @override */
 BetterHeuristic.prototype.eval = function(state) {
-    var numOptions = factorial(state.boxes.length);
+    var numOptions = push.math.factorial(state.boxes.length);
     var minValue = 1e10;
 
-    if (isInvalid(this.level, state)) {
+    if (push.heuristic.isInvalid(this.level, state)) {
     	return 1000;
     }
 
     for (var i = 0; i < numOptions; ++i) {
 	var option = i;
 	var taken = [];
-	var value = 0;
 	var dists = [];
+	var value = 0;
+
 	for (var j = 0; j < state.boxes.length; ++j) {
 	    var divisor = state.boxes.length - j - 1;
 	    var index = option % divisor;
@@ -123,7 +158,12 @@ BetterHeuristic.prototype.eval = function(state) {
 };
 
 
-var AbstractHeuristic = function(level) {
+/**
+ * A heuristic that abstracts out the problem and solves a simple problem.
+ * @param {!push.Level} level
+ * @constructor
+ */
+push.heuristic.AbstractHeuristic = function(level) {
     this.level = level;
     this.abstractLevels = [];
     this.cache = {};
@@ -133,10 +173,12 @@ var AbstractHeuristic = function(level) {
 	this.abstractLevels.push(level.createAbstraction(i, 
 	    Math.min(numBoxes, i + this.abstractionSize)));
     }
-    this.solver = new Solver(SimpleHeuristic, Heap);
+    this.solver = new push.Solver(push.heuristic.SimpleHeuristic, push.Heap);
 };
 
-AbstractHeuristic.prototype.eval = function(state) {
+
+/** @override */
+push.heuristic.AbstractHeuristic.prototype.eval = function(state) {
     var value = 0;
     for (var i = 0; i < this.abstractLevels.length; i++) {
 	var start = this.abstractionSize * i;
@@ -159,5 +201,7 @@ AbstractHeuristic.prototype.eval = function(state) {
     }
     return value;
 };
+
+});
 
 

@@ -1,11 +1,30 @@
+goog.provide('push.Solver');
 
-var Solver = function(opt_heuristicType, opt_heapType, opt_advanced) {
-    this.heuristicType = opt_heuristicType || NullHeuristic;
-    this.heapType = opt_heapType || Queue;
+goog.require('push.Level');
+goog.require('push.State');
+goog.require('push.Queue');
+goog.require('push.heuristic.NullHeuristic');
+
+goog.scope(function() {
+
+
+/**
+ * @constructor
+ */
+push.Solver = function(opt_heuristicType, opt_heapType, opt_advanced) {
+    this.heuristicType = opt_heuristicType || push.heuristic.NullHeuristic;
+    this.heapType = opt_heapType || push.Queue;
     this.advanced = opt_advanced || false;
     this.print = false;
 };
+var Solver = push.Solver;
 
+
+/**
+ * @param {!push.Level}
+ * @param {!push.State}
+ * @return {!push.types.GridPosArray}
+ */
 Solver.prototype.solve = function(level, state) {
     var solution = [];
     var startTime = Date.now();
@@ -25,20 +44,19 @@ Solver.prototype.solve = function(level, state) {
 	getNeighbors = level.getNeighborsAdvanced.bind(level);
     }
     Q.push(info, info.h);
-    
+
     while (!Q.empty()) {
 	var top = Q.pop();
 	info = top.value;
-	if (this.print) {
-	    if (numVisited % 1500 == 0)
-		console.log(top.score + ' ' + numVisited + ' ' + Q.size());
+	if (this.print && numVisited % 1500 == 0) {
+	    console.log(top.score + ' ' + numVisited + ' ' + Q.size());
 	}
 	
 	visited[info.id] = true;
 	numVisited++;
 	
 	if (level.isGoal(info.state)) {
-	    solution = this.backtrack_(info);
+	    solution = this.backtrack_(level, info);
 	    break;
 	}
 	var neighbors = getNeighbors(info.state);
@@ -72,7 +90,7 @@ Solver.prototype.solve = function(level, state) {
 };
 
 
-Solver.prototype.backtrack_ = function(info) {
+Solver.prototype.backtrack_ = function(level, info) {
   var solution = [];
   if (this.print) {
     console.log(info);
@@ -84,7 +102,7 @@ Solver.prototype.backtrack_ = function(info) {
 	var path = level.computeShortestPath(parent.state, info.pusher);
 	solution.push(info.state);
 	for (var i = 0; i < path.length - 1; i++) {
-	    var state = new State(path[i], parent.state.boxes);
+	    var state = new push.State(path[i], parent.state.boxes);
 	    solution.push(state);
 	}
     } else {
@@ -98,3 +116,5 @@ Solver.prototype.backtrack_ = function(info) {
   }
   return solution;
 };
+
+});
