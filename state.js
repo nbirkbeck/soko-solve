@@ -12,22 +12,21 @@ goog.scope(function() {
  * @constructor
  */
 push.State = function(pos, boxes) {
-    /** @type {!push.types.GridPoint} */
-    this.pos = [pos[0], pos[1]];
-
-    /** @type {!push.types.GridPointArray} */
-    this.boxes = boxes.map(function(x) {
-       return x;
-    });
+  /** @type {!push.types.GridPoint} */
+  this.pos = [pos[0], pos[1]];
+  
+  /** @type {!push.types.GridPointArray} */
+  this.boxes = boxes.map(function(x) {
+    return x;
+  });
 };
 var State = push.State;
-
+  
 
 /**
  * Maximum width (and height) of the indexable board points.
  * This is used when packing the grid points and the state.
  * @const {number}
- * @export
  */
 State.MAX_WIDTH = 8;  // 2^6
 
@@ -45,7 +44,7 @@ State.NBITS = 6; // Should be log2(MAX_WIDTH^2);
  * @return {number}
  */
 State.hash = function(pos) {
-    return (pos[1] - 1) * State.MAX_WIDTH + (pos[0] - 1);
+  return (pos[1] - 1) * State.MAX_WIDTH + (pos[0] - 1);
 };
 
 
@@ -56,7 +55,7 @@ State.hash = function(pos) {
  * @return {!push.State}
  */ 
 State.prototype.createAbstraction = function(start, end) {
-    return new State(this.pos, this.boxes.slice(start, end));
+  return new State(this.pos, this.boxes.slice(start, end));
 };
 
 
@@ -64,14 +63,14 @@ State.prototype.createAbstraction = function(start, end) {
  * Packs the state into a compact integer representation.
  */
 State.prototype.pack = function() {
-    var sorted = this.boxes.sort(function(a, b) { 
-      return State.hash(b) - State.hash(a);
-    });
-    var value = State.hash(this.pos);
-    for (var i = 0; i < sorted.length; i++) {
-	value += State.hash(sorted[i]) << ((i + 1) * State.NBITS);
-    }
-    return value;
+  var sorted = this.boxes.sort(function(a, b) { 
+    return State.hash(b) - State.hash(a);
+  });
+  var value = State.hash(this.pos);
+  for (var i = 0; i < sorted.length; i++) {
+    value += State.hash(sorted[i]) << ((i + 1) * State.NBITS);
+  }
+  return value;
 };
 
 
@@ -82,12 +81,12 @@ State.prototype.pack = function() {
  * @return {number}
  */
 State.prototype.getBlockIndex = function(pos) {
-    for (var i = 0; i < this.boxes.length; i++) {
-	if (this.boxes[i][0] == pos[0] && this.boxes[i][1] == pos[1]) {
-	    return i;
-	}
+  for (var i = 0; i < this.boxes.length; i++) {
+    if (this.boxes[i][0] == pos[0] && this.boxes[i][1] == pos[1]) {
+      return i;
     }
-    return -1;
+  }
+  return -1;
 };
 
 
@@ -95,6 +94,6 @@ State.prototype.getBlockIndex = function(pos) {
  * Gets a unique id for this state. Used for keeping track of visibility.
  */
 State.prototype.id = function() {
-    return this.pack();
+  return this.pack();
 };
 });

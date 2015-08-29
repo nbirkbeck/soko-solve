@@ -11,22 +11,24 @@ goog.require('push.constants');
 goog.scope(function() {
 var constants = push.constants;
 
+
+
 push.heuristic.isInvalid = function(level, state) {
-    for (var i = 0, numBoxes = state.boxes.length; i < numBoxes; ++i) {
-	var box = state.boxes[i];
-	if (level.getCellType(box) == constants.CellTypes.CROSS)
-	    continue;
-	var upBlocked = level.getCellType([box[0], box[1] - 1]) < constants.CellTypes.EMPTY;
-	var downBlocked = level.getCellType([box[0], box[1] + 1]) < constants.CellTypes.EMPTY;
-	var leftBlocked = level.getCellType([box[0] - 1, box[1]]) < constants.CellTypes.EMPTY;
-	var rightBlocked = level.getCellType([box[0] + 1, box[1]]) < constants.CellTypes.EMPTY;
-	var sideBlocked = leftBlocked || rightBlocked;
-	var topBlocked = upBlocked || downBlocked;
-	if (upBlocked && sideBlocked) {
-	    return true;
-	}
+  for (var i = 0, numBoxes = state.boxes.length; i < numBoxes; ++i) {
+    var box = state.boxes[i];
+    if (level.getCellType(box) == constants.CellTypes.CROSS)
+      continue;
+    var upBlocked = level.getCellType([box[0], box[1] - 1]) < constants.CellTypes.EMPTY;
+    var downBlocked = level.getCellType([box[0], box[1] + 1]) < constants.CellTypes.EMPTY;
+    var leftBlocked = level.getCellType([box[0] - 1, box[1]]) < constants.CellTypes.EMPTY;
+    var rightBlocked = level.getCellType([box[0] + 1, box[1]]) < constants.CellTypes.EMPTY;
+    var sideBlocked = leftBlocked || rightBlocked;
+    var topBlocked = upBlocked || downBlocked;
+    if (upBlocked && sideBlocked) {
+      return true;
     }
-    return false;
+  }
+  return false;
 };
 
 
@@ -37,7 +39,7 @@ push.heuristic.isInvalid = function(level, state) {
 push.heuristic.NullHeuristic = function(opt_level) {};
 
 push.heuristic.NullHeuristic.prototype.eval = function(state) {
-    return 0;
+  return 0;
 };
 
 
@@ -48,16 +50,16 @@ push.heuristic.NullHeuristic.prototype.eval = function(state) {
  * @constructor
  */
 push.heuristic.InvalidHeuristic = function(level) {
-    this.level = level;
+  this.level = level;
 };
 
 
 /** @override */
 push.heuristic.InvalidHeuristic.prototype.eval = function(state) {
-    if (push.heuristic.isInvalid(this.level, state)) {
-	return 1000;
-    }
-    return 0;
+  if (push.heuristic.isInvalid(this.level, state)) {
+    return 1000;
+  }
+  return 0;
 };
 
 
@@ -67,36 +69,36 @@ push.heuristic.InvalidHeuristic.prototype.eval = function(state) {
  * @constructor
  */
 push.heuristic.SimpleHeuristic = function(level) {
-    this.level = level;
+  this.level = level;
 };
 var SimpleHeuristic = push.heuristic.SimpleHeuristic;
 
 
 /** @override */
 SimpleHeuristic.prototype.eval = function(state) {
-    var value = 0;
-    var minBoxDistance = 1000;
-    var level = this.level;
-    if (push.heuristic.isInvalid(this.level, state)) {
-	return 1000;
+  var value = 0;
+  var minBoxDistance = 1000;
+  var level = this.level;
+  if (push.heuristic.isInvalid(this.level, state)) {
+    return 1000;
+  }
+  for (var i = 0, numBoxes = state.boxes.length; i < numBoxes; ++i) {
+    var minDist = 1e10;
+    var box = state.boxes[i];
+    for (var j = 0, numCrosses = level.crosses.length; j < numCrosses; ++j) {
+      var dist = Math.abs(level.crosses[j][0] - box[0]) +
+	    Math.abs(level.crosses[j][1] - box[1]);
+      if (dist < minDist) {
+	minDist = dist;
+      }
     }
-    for (var i = 0, numBoxes = state.boxes.length; i < numBoxes; ++i) {
-	var minDist = 1e10;
-	var box = state.boxes[i];
-	for (var j = 0, numCrosses = level.crosses.length; j < numCrosses; ++j) {
-	    var dist = Math.abs(level.crosses[j][0] - box[0]) +
-		Math.abs(level.crosses[j][1] - box[1]);
-	    if (dist < minDist) {
-		minDist = dist;
-	    }
-	}
-	value += minDist;
-	var boxDistance = Math.abs(box[0] - state.pos[0]) + 
-	    Math.abs(box[1] - state.pos[1]);
-	if (boxDistance < minBoxDistance)
-	    minBoxDistance = boxDistance;
-    }
-    return value + minBoxDistance;
+    value += minDist;
+    var boxDistance = Math.abs(box[0] - state.pos[0]) + 
+	  Math.abs(box[1] - state.pos[1]);
+    if (boxDistance < minBoxDistance)
+      minBoxDistance = boxDistance;
+  }
+  return value + minBoxDistance;
 };
 
 
@@ -106,55 +108,55 @@ SimpleHeuristic.prototype.eval = function(state) {
  * @constructor
  */
 push.heuristic.BetterHeuristic = function(level) {
-    this.level = level;
+  this.level = level;
 };
 var BetterHeuristic = push.heuristic.BetterHeuristic;
 
 
 /** @override */
 BetterHeuristic.prototype.eval = function(state) {
-    var numOptions = push.math.factorial(state.boxes.length);
-    var minValue = 1e10;
-
-    if (push.heuristic.isInvalid(this.level, state)) {
-    	return 1000;
+  var numOptions = push.math.factorial(state.boxes.length);
+  var minValue = 1e10;
+  
+  if (push.heuristic.isInvalid(this.level, state)) {
+    return 1000;
+  }
+  
+  for (var i = 0; i < numOptions; ++i) {
+    var option = i;
+    var taken = [];
+    var dists = [];
+    var value = 0;
+    
+    for (var j = 0; j < state.boxes.length; ++j) {
+      var divisor = state.boxes.length - j - 1;
+      var index = option % divisor;
+      var k = 0;
+      while (index > 0 || taken[k] === true) {
+	if (taken[k] === true)
+	  k++;
+	else {
+	  index--;
+	  k++;
+	}
+      }
+      var box = state.boxes[j];
+      var dist = Math.abs(level.crosses[k][0] - box[0]) +
+	    Math.abs(level.crosses[k][1] - box[1]);
+      option /= divisor;
+      value += dist;
+      taken[k] = true;
+      dists[j] = dist;
     }
-
-    for (var i = 0; i < numOptions; ++i) {
-	var option = i;
-	var taken = [];
-	var dists = [];
-	var value = 0;
-
-	for (var j = 0; j < state.boxes.length; ++j) {
-	    var divisor = state.boxes.length - j - 1;
-	    var index = option % divisor;
-	    var k = 0;
-	    while (index > 0 || taken[k] === true) {
-		if (taken[k] === true)
-		    k++;
-		else {
-		    index--;
-		    k++;
-		}
-	    }
-	    var box = state.boxes[j];
-	    var dist = Math.abs(level.crosses[k][0] - box[0]) +
-		Math.abs(level.crosses[k][1] - box[1]);
-	    option /= divisor;
-	    value += dist;
-	    taken[k] = true;
-	    dists[j] = dist;
-	}
-	dists = dists.sort();
-	for (var k = 0; k < dists.length - 1; ++k) {
-	    //	    value += dists[k];
-	}
-	if (value < minValue) {
-	    minValue = value;
-	}
+    dists = dists.sort();
+    for (var k = 0; k < dists.length - 1; ++k) {
+      //	    value += dists[k];
     }
-    return minValue;
+    if (value < minValue) {
+      minValue = value;
+    }
+  }
+  return minValue;
 };
 
 
@@ -164,44 +166,43 @@ BetterHeuristic.prototype.eval = function(state) {
  * @constructor
  */
 push.heuristic.AbstractHeuristic = function(level) {
-    this.level = level;
-    this.abstractLevels = [];
-    this.cache = {};
-    var numBoxes = level.boxes.length;
-    this.abstractionSize = 1; // numBoxes >= 4 ? 2 : 1;
-    for (var i = 0; i < numBoxes; i += this.abstractionSize) {
-	this.abstractLevels.push(level.createAbstraction(i, 
-	    Math.min(numBoxes, i + this.abstractionSize)));
-    }
-    this.solver = new push.Solver(push.heuristic.SimpleHeuristic, push.Heap);
+  this.level = level;
+  this.abstractLevels = [];
+  this.cache = {};
+  var numBoxes = level.boxes.length;
+  this.abstractionSize = 1; // numBoxes >= 4 ? 2 : 1;
+  for (var i = 0; i < numBoxes; i += this.abstractionSize) {
+    this.abstractLevels.push(level.createAbstraction(
+      i, Math.min(numBoxes, i + this.abstractionSize)));
+  }
+  this.solver = new push.Solver(push.heuristic.SimpleHeuristic, push.Heap);
 };
 
 
 /** @override */
 push.heuristic.AbstractHeuristic.prototype.eval = function(state) {
-    var value = 0;
-    for (var i = 0; i < this.abstractLevels.length; i++) {
-	var start = this.abstractionSize * i;
-	var end = Math.min(state.boxes.length, start + this.abstractionSize);
-	var abstractState = state.createAbstraction(start, end);
-	var id = abstractState.id();
-	var thisValue = this.cache[id];
-	if (thisValue === undefined) {
-	    var solution = this.solver.solve(this.abstractLevels[i], abstractState);
-	    thisValue = solution.length - 1;
-	    if (thisValue < 0) {
-		thisValue = 10000;
-	    }
-	    this.cache[id] = thisValue;
-	    for (var j = 0; j < solution.length; j++) {
-		this.cache[solution[j].id()] = j;
-	    }
-	}
-	value = Math.max(value, thisValue);
+  var value = 0;
+  for (var i = 0; i < this.abstractLevels.length; i++) {
+    var start = this.abstractionSize * i;
+    var end = Math.min(state.boxes.length, start + this.abstractionSize);
+    var abstractState = state.createAbstraction(start, end);
+    var id = abstractState.id();
+    var thisValue = this.cache[id];
+    if (thisValue === undefined) {
+      var solution = this.solver.solve(this.abstractLevels[i], abstractState);
+      thisValue = solution.length - 1;
+      if (thisValue < 0) {
+	thisValue = 10000;
+      }
+      this.cache[id] = thisValue;
+      for (var j = 0; j < solution.length; j++) {
+	this.cache[solution[j].id()] = j;
+      }
     }
-    return value;
+    value = Math.max(value, thisValue);
+  }
+  return value;
 };
-
 });
 
 
