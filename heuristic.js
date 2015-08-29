@@ -1,19 +1,19 @@
-goog.provide('push.heuristic');
-goog.provide('push.heuristic.NullHeuristic');
-goog.provide('push.heuristic.InvalidHeuristic');
-goog.provide('push.heurisitc.SimplelHeuristic');
-goog.provide('push.heurisitc.AbstractHeuristic');
+goog.provide('soko.heuristic');
+goog.provide('soko.heuristic.NullHeuristic');
+goog.provide('soko.heuristic.InvalidHeuristic');
+goog.provide('soko.heurisitc.SimplelHeuristic');
+goog.provide('soko.heurisitc.AbstractHeuristic');
 
-goog.require('push.math');
-goog.require('push.Heap');
-goog.require('push.constants');
+goog.require('soko.math');
+goog.require('soko.Heap');
+goog.require('soko.constants');
 
 goog.scope(function() {
-var constants = push.constants;
+var constants = soko.constants;
 
 
 
-push.heuristic.isInvalid = function(level, state) {
+soko.heuristic.isInvalid = function(level, state) {
   for (var i = 0, numBoxes = state.boxes.length; i < numBoxes; ++i) {
     var box = state.boxes[i];
     if (level.getCellType(box) == constants.CellTypes.CROSS)
@@ -36,9 +36,9 @@ push.heuristic.isInvalid = function(level, state) {
  * A null heuristic (doesn't give any estimate).
  * @constructor
  */
-push.heuristic.NullHeuristic = function(opt_level) {};
+soko.heuristic.NullHeuristic = function(opt_level) {};
 
-push.heuristic.NullHeuristic.prototype.eval = function(state) {
+soko.heuristic.NullHeuristic.prototype.eval = function(state) {
   return 0;
 };
 
@@ -46,17 +46,17 @@ push.heuristic.NullHeuristic.prototype.eval = function(state) {
 
 /**
  * An invalid heuristic (only gives high estimate to invalid states).
- * @param {!push.Level} level
+ * @param {!soko.Level} level
  * @constructor
  */
-push.heuristic.InvalidHeuristic = function(level) {
+soko.heuristic.InvalidHeuristic = function(level) {
   this.level = level;
 };
 
 
 /** @override */
-push.heuristic.InvalidHeuristic.prototype.eval = function(state) {
-  if (push.heuristic.isInvalid(this.level, state)) {
+soko.heuristic.InvalidHeuristic.prototype.eval = function(state) {
+  if (soko.heuristic.isInvalid(this.level, state)) {
     return 1000;
   }
   return 0;
@@ -65,13 +65,13 @@ push.heuristic.InvalidHeuristic.prototype.eval = function(state) {
 
 /**
  * A simple heuristic that uses manhattan distance.
- * @param {!push.Level} level
+ * @param {!soko.Level} level
  * @constructor
  */
-push.heuristic.SimpleHeuristic = function(level) {
+soko.heuristic.SimpleHeuristic = function(level) {
   this.level = level;
 };
-var SimpleHeuristic = push.heuristic.SimpleHeuristic;
+var SimpleHeuristic = soko.heuristic.SimpleHeuristic;
 
 
 /** @override */
@@ -79,7 +79,7 @@ SimpleHeuristic.prototype.eval = function(state) {
   var value = 0;
   var minBoxDistance = 1000;
   var level = this.level;
-  if (push.heuristic.isInvalid(this.level, state)) {
+  if (soko.heuristic.isInvalid(this.level, state)) {
     return 1000;
   }
   for (var i = 0, numBoxes = state.boxes.length; i < numBoxes; ++i) {
@@ -104,21 +104,21 @@ SimpleHeuristic.prototype.eval = function(state) {
 
 /**
  * An attempt to get a better heuristic.
- * @param {!push.Level} level
+ * @param {!soko.Level} level
  * @constructor
  */
-push.heuristic.BetterHeuristic = function(level) {
+soko.heuristic.BetterHeuristic = function(level) {
   this.level = level;
 };
-var BetterHeuristic = push.heuristic.BetterHeuristic;
+var BetterHeuristic = soko.heuristic.BetterHeuristic;
 
 
 /** @override */
 BetterHeuristic.prototype.eval = function(state) {
-  var numOptions = push.math.factorial(state.boxes.length);
+  var numOptions = soko.math.factorial(state.boxes.length);
   var minValue = 1e10;
   
-  if (push.heuristic.isInvalid(this.level, state)) {
+  if (soko.heuristic.isInvalid(this.level, state)) {
     return 1000;
   }
   
@@ -162,10 +162,10 @@ BetterHeuristic.prototype.eval = function(state) {
 
 /**
  * A heuristic that abstracts out the problem and solves a simple problem.
- * @param {!push.Level} level
+ * @param {!soko.Level} level
  * @constructor
  */
-push.heuristic.AbstractHeuristic = function(level) {
+soko.heuristic.AbstractHeuristic = function(level) {
   this.level = level;
   this.abstractLevels = [];
   this.cache = {};
@@ -175,12 +175,12 @@ push.heuristic.AbstractHeuristic = function(level) {
     this.abstractLevels.push(level.createAbstraction(
       i, Math.min(numBoxes, i + this.abstractionSize)));
   }
-  this.solver = new push.Solver(push.heuristic.SimpleHeuristic, push.Heap);
+  this.solver = new soko.Solver(soko.heuristic.SimpleHeuristic, soko.Heap);
 };
 
 
 /** @override */
-push.heuristic.AbstractHeuristic.prototype.eval = function(state) {
+soko.heuristic.AbstractHeuristic.prototype.eval = function(state) {
   var value = 0;
   for (var i = 0; i < this.abstractLevels.length; i++) {
     var start = this.abstractionSize * i;

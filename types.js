@@ -1,14 +1,14 @@
-goog.provide('push.types');
-goog.provide('push.types.GridPoint');
+goog.provide('soko.types');
+goog.provide('soko.types.GridPoint');
 
 
 /**
  * @typedef {!Array.<number>}
  */
-push.types.GridPoint;
+soko.types.GridPoint;
 
 
 /**
- * @typedef {!Array.<!push.types.GridPoint>} boxes
+ * @typedef {!Array.<!soko.types.GridPoint>} boxes
  */
-push.types.GridPointArray;
+soko.types.GridPointArray;

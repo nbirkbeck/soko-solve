@@ -1,8 +1,8 @@
-goog.provide('push.constants');
+goog.provide('soko.constants');
 
 
 goog.scope(function() {
-var constants = push.constants;
+var constants = soko.constants;
 
 
 /**

@@ -1,4 +1,4 @@
-goog.provide('push.Heap');
+goog.provide('soko.Heap');
 
 goog.scope(function() {
 
@@ -6,11 +6,11 @@ goog.scope(function() {
 /**
  * @constructor
  */
-push.Heap = function() {
+soko.Heap = function() {
   this.data_ = [];
   this.map_ = {};
 };
-var Heap = push.Heap;
+var Heap = soko.Heap;
 
 Heap.prototype.size = function() {
   return this.data_.length;

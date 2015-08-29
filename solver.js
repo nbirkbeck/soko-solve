@@ -1,9 +1,9 @@
-goog.provide('push.Solver');
+goog.provide('soko.Solver');
 
-goog.require('push.Level');
-goog.require('push.State');
-goog.require('push.Queue');
-goog.require('push.heuristic.NullHeuristic');
+goog.require('soko.Level');
+goog.require('soko.State');
+goog.require('soko.Queue');
+goog.require('soko.heuristic.NullHeuristic');
 
 goog.scope(function() {
   
@@ -11,19 +11,19 @@ goog.scope(function() {
 /**
  * @constructor
  */
-push.Solver = function(opt_heuristicType, opt_heapType, opt_advanced) {
-  this.heuristicType = opt_heuristicType || push.heuristic.NullHeuristic;
-  this.heapType = opt_heapType || push.Queue;
+soko.Solver = function(opt_heuristicType, opt_heapType, opt_advanced) {
+  this.heuristicType = opt_heuristicType || soko.heuristic.NullHeuristic;
+  this.heapType = opt_heapType || soko.Queue;
   this.advanced = opt_advanced || false;
   this.print = false;
 };
-var Solver = push.Solver;
+var Solver = soko.Solver;
 
 
 /**
- * @param {!push.Level}
- * @param {!push.State}
- * @return {!push.types.GridPosArray}
+ * @param {!soko.Level}
+ * @param {!soko.State}
+ * @return {!soko.types.GridPosArray}
  */
 Solver.prototype.solve = function(level, state) {
   var solution = [];
@@ -48,7 +48,7 @@ Solver.prototype.solve = function(level, state) {
   while (!Q.empty()) {
     var top = Q.pop();
     info = top.value;
-    if (this.print && numVisited % 1500 == 0) {
+    if (this.print && numVisited % 5000 == 0) {
       console.log(top.score + ' ' + numVisited + ' ' + Q.size());
     }
     
@@ -102,7 +102,7 @@ Solver.prototype.backtrack_ = function(level, info) {
       var path = level.computeShortestPath(parent.state, info.pusher);
       solution.push(info.state);
       for (var i = 0; i < path.length - 1; i++) {
-	var state = new push.State(path[i], parent.state.boxes);
+	var state = new soko.State(path[i], parent.state.boxes);
 	solution.push(state);
       }
     } else {

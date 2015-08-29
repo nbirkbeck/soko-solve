@@ -1,30 +1,35 @@
-goog.provide('push.Level');
+goog.provide('soko.Level');
 
-goog.require('push.constants');
+goog.require('soko.constants');
+
 
 goog.scope(function() {
-var constants = push.constants;
+var constants = soko.constants;
 
 
 /**
  * @param {string=} opt_textGrid Optional level to load (as a string).
  * @constructor
  */
-push.Level = function(opt_textGrid) {
+soko.Level = function(opt_textGrid) {
+  /** @param {Array.<Array.<number>>} */
   this.grid = [];
+  /** @param {!types.GridPoint} */
   this.startPos = [];
+  /** @param {!types.GridPointArray} */
   this.boxes = [];
+  /** @param {!types.GridPointArray} */
   this.crosses = [];
+
   if (opt_textGrid) {
     this.loadLevel(opt_textGrid);
   }
 };
-var Level = push.Level;
+var Level = soko.Level;
 
 
 /**
  * @param {string} Text grid.
- * @export
  */
 Level.prototype.loadLevel = function(textGrid) {
   var rows = textGrid.split('\n'); 
@@ -57,9 +62,8 @@ Level.prototype.loadLevel = function(textGrid) {
 
 /**
  * Draws the level to the given context.
- * @param {!push.State}
+ * @param {!soko.State}
  * @param {Object}
- * @export
  */
 Level.prototype.draw = function(state, context) {
   var BLOCK_SIZE = constants.BLOCK_SIZE;
@@ -98,14 +102,14 @@ Level.prototype.draw = function(state, context) {
 
 /**
  * Moves the player in the current state. Returns true if possible.
- * @param {!push.State} state the current state
- * @param {!push.constants.Directions} direction
+ * @param {!soko.State} state the current state
+ * @param {!soko.constants.Directions} direction
  * @return {boolean}
  */
 Level.prototype.move = function(state, direction) {
-  var offset = push.constants.DELTAS[direction];
-  var pos1 = push.math.vectorAdd(state.pos, offset);
-  var pos2 = push.math.vectorAdd(state.pos, offset, 2);
+  var offset = soko.constants.DELTAS[direction];
+  var pos1 = soko.math.vectorAdd(state.pos, offset);
+  var pos2 = soko.math.vectorAdd(state.pos, offset, 2);
   var n1 = this.getCellType(pos1);
   var n2 = this.getCellType(pos2);
   var b1 = state.getBlockIndex(pos1);
@@ -126,7 +130,7 @@ Level.prototype.move = function(state, direction) {
 
 
 /**
- * @param {!push.types.GridPoint} pos
+ * @param {!soko.types.GridPoint} pos
  * @return {undefined|constants.CellTypes}
  */
 Level.prototype.getCellType = function(pos) {
@@ -138,13 +142,13 @@ Level.prototype.getCellType = function(pos) {
 
 
 /**
- * @param {!push.State} state
- * @return {!Array.<!Array<{number|push.State}>>}
+ * @param {!soko.State} state
+ * @return {!Array.<!Array<{number|soko.State}>>}
  */
 Level.prototype.getNeighbors = function(state) {
   var neighbors = [];
   for (var i = 0; i < 4; ++i) {
-    var neighState = new push.State(state.pos, state.boxes);
+    var neighState = new soko.State(state.pos, state.boxes);
     if (this.move(neighState, i)) {
       neighbors.push([1, neighState]);
     }
@@ -154,15 +158,15 @@ Level.prototype.getNeighbors = function(state) {
 
 
 /**
- * @param {!push.State} state
- * @param {!push.types.GridPoint} opt_target
+ * @param {!soko.State} state
+ * @param {!soko.types.GridPoint} opt_target
  * @return {Object}
  */
 Level.prototype.computeShortestPath = function(state, opt_target) {
   var vis = {};
   var Q = [];
   var pos = [state.pos[0], state.pos[1], 1, []];
-  vis[push.State.hash(pos)] = 1;
+  vis[soko.State.hash(pos)] = 1;
   Q.push(pos);
   
   // Do a BFS to find all reachable states.
@@ -177,12 +181,12 @@ Level.prototype.computeShortestPath = function(state, opt_target) {
       return solution;
     }
     for (var j = 0; j < 4; ++j) {
-      var offset = push.constants.DELTAS[j];
+      var offset = soko.constants.DELTAS[j];
       var neighPos = [offset[0] + pos[0], offset[1] + pos[1], 1 + pos[2], pos];
       var cellType = this.getCellType(neighPos);
       var boxIndex = state.getBlockIndex(neighPos);
       if (cellType >= constants.CellTypes.EMPTY && boxIndex < 0) {
-	var id = push.State.hash(neighPos);
+	var id = soko.State.hash(neighPos);
 	if (vis[id] === undefined) {
 	  vis[id] = neighPos[2];
 	  Q.push(neighPos);
@@ -195,8 +199,8 @@ Level.prototype.computeShortestPath = function(state, opt_target) {
 
 
 /**
- * @param {!push.State} state
- * @return {!Array.<!Array<{number|push.State}>>}
+ * @param {!soko.State} state
+ * @return {!Array.<!Array<{number|soko.State}>>}
  */
 Level.prototype.getNeighborsAdvanced = function(state) {
   var neighbors = [];
@@ -205,17 +209,17 @@ Level.prototype.getNeighborsAdvanced = function(state) {
     var box = state.boxes[i];
     for (var j = 0; j < 4; ++j) {
       var offset = constants.DELTAS[j];
-      var target = push.math.vectorAdd(box, offset);
+      var target = soko.math.vectorAdd(box, offset);
       var targetType = this.getCellType(target);
       if (targetType < constants.CellTypes.EMPTY) continue;
       
       var targetBox = state.getBlockIndex(target);
       if (targetBox >= 0) continue;
       
-      var pusher = push.math.vectorAdd(box, offset, -1);
-      var distance = vis[push.State.hash(pusher)];
+      var pusher = soko.math.vectorAdd(box, offset, -1);
+      var distance = vis[soko.State.hash(pusher)];
       if (distance !== undefined) {
-	var neighState = new push.State(box, state.boxes);
+	var neighState = new soko.State(box, state.boxes);
 	neighState.boxes[i] = target;
 	neighbors.push([distance, neighState, pusher]);
       }
@@ -226,7 +230,7 @@ Level.prototype.getNeighborsAdvanced = function(state) {
 
 
 /**
- * @param {!push.State} state
+ * @param {!soko.State} state
  * @return {boolean}
  */
 Level.prototype.isGoal = function(state) {
@@ -241,20 +245,20 @@ Level.prototype.isGoal = function(state) {
 
 
 /**
- * @return {!push.State}
+ * @return {!soko.State}
  */
 Level.prototype.getInitialState = function() {
-  return new push.State(this.startPos, this.boxes);
+  return new soko.State(this.startPos, this.boxes);
 };
 
 
 /**
  * @param {number} start
  * @param {number} end
- * @return {!push.Level}
+ * @return {!soko.Level}
  */
 Level.prototype.createAbstraction = function(start, end) {
-  var level = new push.Level();
+  var level = new soko.Level();
   level.grid = this.grid;
   level.startPos = this.startPos;
   level.crosses = this.crosses;

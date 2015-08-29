@@ -1,26 +1,26 @@
-goog.provide('push.State');
+goog.provide('soko.State');
 
-goog.require('push.types.GridPoint');
+goog.require('soko.types.GridPoint');
 
 goog.scope(function() {
 
 
 
 /** 
- * @param {!push.types.GridPoint} pos
- * @param {!push.types.GridPointArray} boxes
+ * @param {!soko.types.GridPoint} pos
+ * @param {!soko.types.GridPointArray} boxes
  * @constructor
  */
-push.State = function(pos, boxes) {
-  /** @type {!push.types.GridPoint} */
+soko.State = function(pos, boxes) {
+  /** @type {!soko.types.GridPoint} */
   this.pos = [pos[0], pos[1]];
   
-  /** @type {!push.types.GridPointArray} */
+  /** @type {!soko.types.GridPointArray} */
   this.boxes = boxes.map(function(x) {
     return x;
   });
 };
-var State = push.State;
+var State = soko.State;
   
 
 /**
@@ -40,7 +40,7 @@ State.NBITS = 6; // Should be log2(MAX_WIDTH^2);
 
 /**
  * Converts a point to a single index number.
- * @param {!push.types.GridPoint} pos
+ * @param {!soko.types.GridPoint} pos
  * @return {number}
  */
 State.hash = function(pos) {
@@ -52,7 +52,7 @@ State.hash = function(pos) {
  * Creates an state abstraction using the slice from start to end.
  * @param {number} start
  * @param {number} end
- * @return {!push.State}
+ * @return {!soko.State}
  */ 
 State.prototype.createAbstraction = function(start, end) {
   return new State(this.pos, this.boxes.slice(start, end));
@@ -77,7 +77,7 @@ State.prototype.pack = function() {
 /**
  * Gets the block index for the given grid point. Returns -1 if there
  * is nothing at the given point.
- * @param {!push.types.GridPoint} pos
+ * @param {!soko.types.GridPoint} pos
  * @return {number}
  */
 State.prototype.getBlockIndex = function(pos) {

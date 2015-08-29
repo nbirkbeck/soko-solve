@@ -1,4 +1,4 @@
-goog.provide('push.Queue');
+goog.provide('soko.Queue');
 
 goog.scope(function() {
 
@@ -7,11 +7,11 @@ goog.scope(function() {
 /**
  * @constructor
  */
-push.Queue = function() {
+soko.Queue = function() {
   this.data_ = [];
   this.map_ = [];
 };
-var Queue = push.Queue;
+var Queue = soko.Queue;
 
 
 Queue.prototype.empty = function() {
