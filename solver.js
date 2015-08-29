@@ -96,7 +96,7 @@ Solver.prototype.solve = function(level, state) {
     visited[node.id] = true;
     numVisited++;
     
-    if (level.isGoal(node.state) || top.score > 1000) {
+    if (level.isGoal(node.state)) {
       solution = this.backtrack_(level, node);
       break;
     }

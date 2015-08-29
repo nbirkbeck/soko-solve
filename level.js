@@ -219,6 +219,9 @@ Level.prototype.getNeighborsCondensed = function(state) {
       if (targetBox >= 0) continue;
       
       var pusher = soko.math.vectorAdd(box, offset, -1);
+      var pusherType = this.getCellType(pusher);
+      if (pusherType < constants.CellTypes.EMPTY) continue;
+
       var distance = vis[soko.State.hash(pusher)];
       if (distance !== undefined) {
 	var neighState = new soko.State(box, state.boxes);

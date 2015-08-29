@@ -144,6 +144,14 @@ BetterHeuristic.prototype.evaluate = function(state) {
     return 1000;
   }
   
+  /* This didn't help either...
+  var distanceMaps = [];
+  for (var i = 0; i < state.boxes.length; ++i) {
+    var startState = new soko.State(state.boxes[i], []);
+    distanceMaps.push(this.level.computeShortestPath(startState));
+  }
+   */
+
   for (var i = 0; i < numOptions; ++i) {
     var option = i;
     var taken = [];
@@ -163,7 +171,8 @@ BetterHeuristic.prototype.evaluate = function(state) {
 	}
       }
       var box = state.boxes[j];
-      var dist = soko.math.vectorDistanceL1(this.level.crosses[k], box);
+      var dist = soko.math.vectorDistanceL1(this.level.crosses[k], box); 
+      // var dist = distanceMaps[j][soko.State.hash(this.level.crosses[k])] - 1;
       option /= divisor;
       value += dist;
       taken[k] = true;
