@@ -8,18 +8,55 @@ goog.require('soko.heuristic.NullHeuristic');
 
 goog.scope(function() {
   
+/**
+ * Statistics pulled from the solver.
+ * 
+ * @typedef {{
+ *   nodesVisited: number,
+ *   finalQueueSize: number,
+ *   elapsedTime: number,
+ *   solutionLength: number
+ * }}
+ */
+soko.SolverStats;
+
+
+/**
+ * A node with extra information used in the search tree. Keeps
+ * track of distance travelled so far (g), heuristic value (h),
+ * an optional location of the pusher (for condensed representation),
+ * the state, and a parent.
+ * 
+ * @typedef {{
+ *   f: (undefined|number),
+ *   g: number,
+ *   h: number,
+ *   pusher: soko.types.GridPoint,
+ *   id: soko.StateId,
+ *   state: !soko.State,
+ *   parent: soko.SolverNode
+ * }}
+ */
+soko.SolverNode;
+
 
 /**
  * @param {function (new:soko.heuristic.Heuristic, !soko.Level)=} opt_heuristic heuristicType
  * @param {function (new:soko.HeapInterface)=} opt_heapType heap type
- * @param {boolean=} opt_advanced whether to use advanced moves.
+ * @param {boolean=} opt_condensed whether to use condensed moves
  * @constructor
  */
-soko.Solver = function(opt_heuristic, opt_heapType, opt_advanced) {
-  this.heuristicType = opt_heuristic || soko.heuristic.NullHeuristic;
-  this.heapType = opt_heapType || soko.Queue;
-  this.advanced = opt_advanced || false;
+soko.Solver = function(opt_heuristic, opt_heapType, opt_condensed) {
+  /** @private {function (new:soko.heuristic.Heuristic, !soko.Level)} */
+  this.heuristicType_ = opt_heuristic || soko.heuristic.NullHeuristic;
+  /** @private {function (new:soko.HeapInterface)} */
+  this.heapType_ = opt_heapType || soko.Queue;
+  /** @private {boolean} */
+  this.condensed_ = opt_condensed || false;
+  /** @type {boolean} */
   this.print = false;
+  /** @type {soko.SolverStats} */
+  this.solverStats;
 };
 var Solver = soko.Solver;
 
@@ -32,51 +69,51 @@ var Solver = soko.Solver;
 Solver.prototype.solve = function(level, state) {
   var solution = [];
   var startTime = Date.now();
-  var heuristic = new this.heuristicType(level);
-  var info = {
+  var heuristic = new this.heuristicType_(level);
+  var node = {
     'state': state,
     'g': 0,
     'h': heuristic.evaluate(state),
     'parent': null,
     'id': state.id()
   };
-  var Q = new this.heapType();
+  var Q = new this.heapType_();
   var numVisited = 0;
   var visited = {};
   var getNeighbors = level.getNeighbors.bind(level);
-  if (this.advanced) {
-    getNeighbors = level.getNeighborsAdvanced.bind(level);
+  if (this.condensed_) {
+    getNeighbors = level.getNeighborsCondensed.bind(level);
   }
-  Q.push(info, info.h);
+  Q.push(node, node.h);
   
   while (!Q.empty()) {
     var top = Q.pop();
-    info = top.value;
+    node = top.value;
     if (this.print && numVisited % 5000 == 0) {
       console.log(top.score + ' ' + numVisited + ' ' + Q.size());
     }
     
-    visited[info.id] = true;
+    visited[node.id] = true;
     numVisited++;
     
-    if (level.isGoal(info.state)) {
-      solution = this.backtrack_(level, info);
+    if (level.isGoal(node.state) || top.score > 1000) {
+      solution = this.backtrack_(level, node);
       break;
     }
-    var neighbors = getNeighbors(info.state);
+    var neighbors = getNeighbors(node.state);
     for (var i = 0, length = neighbors.length; i < length; ++i) {
       var id = neighbors[i][1].id();
       if (visited[id]) continue;
-      
-      var g = info.g + neighbors[i][0];
-      var h = heuristic.evaluate(neighbors[i][1]);
+      var neighState = /** @type {!soko.State} */(neighbors[i][1]);
+      var g = node.g + /** @type {number} */(neighbors[i][0]);
+      var h = heuristic.evaluate(neighState);
       var f = g + h;
       var child = {
-	'state': neighbors[i][1],
+	'state': neighState,
 	'pusher': neighbors[i][2],
 	'g': g,
 	'h': h,
-	'parent': info,
+	'parent': node,
 	'id': id
       };
       if (Q.exists(child)) {
@@ -87,33 +124,38 @@ Solver.prototype.solve = function(level, state) {
     }
   }
   
-  var endTime = Date.now();
-  var duration = (endTime - startTime) / 1000.0;
+  var duration = (Date.now() - startTime) / 1000.0;
   if (this.print) console.log('numVisited:' + numVisited + ' duration:' + duration);
+  this.solverStats = {
+    'solutionLength': solution.length,
+    'elapsedTime': duration,
+    'finalQueueSize': Q.size(),
+    'nodesVisited': numVisited
+  }; 
   return solution;
 };
 
 
-Solver.prototype.backtrack_ = function(level, info) {
+/** @private */
+Solver.prototype.backtrack_ = function(level, node) {
   var solution = [];
   if (this.print) {
-    console.log(info);
+    console.log(node);
   }
-  // Backtrack the solution.
   do {
-    var parent = info.parent;
-    if (parent != null && info.pusher) {
-      var path = level.computeShortestPath(parent.state, info.pusher);
-      solution.push(info.state);
+    var parent = node.parent;
+    if (parent != null && node.pusher) {
+      var path = level.computeShortestPath(parent.state, node.pusher);
+      solution.push(node.state);
       for (var i = 0; i < path.length - 1; i++) {
 	var state = new soko.State(path[i], parent.state.boxes);
 	solution.push(state);
       }
     } else {
-      solution.push(info.state);
+      solution.push(node.state);
     }
-    info = info.parent;
-  } while (info != null);
+    node = node.parent;
+  } while (node != null);
   
   if (this.print) {
     console.log(solution.length);

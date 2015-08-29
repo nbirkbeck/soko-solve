@@ -4,6 +4,7 @@ goog.require('soko.Solver');
 goog.require('soko.Level');
 goog.require('soko.Heap');
 goog.require('soko.constants');
+goog.require('soko.levels.microa');
 
 var LEVELS = [
   '    #####   \n' + 
@@ -29,7 +30,7 @@ var LEVELS = [
     ' #    # \n' +
     ' #  ### \n' +
     ' ####   \n', 
-  ' ####### \n' +
+    ' ####### \n' +
     '## xxxx# \n' + 
     '#   ###### \n' +
     '#   b b *# \n' +
@@ -45,7 +46,7 @@ var LEVELS = [
     ' #  x x# \n' +
     ' # *x x# \n' +
     ' #  #### \n' +
-    ' ####    \n'
+    ' ####    \n'  
 ];
 
 /** @export */
@@ -54,7 +55,9 @@ soko.game = function() {
   var constants = soko.constants;
   var canvas = document.getElementById('canvas');
   var context = canvas.getContext('2d');
-  var level = new soko.Level(LEVELS[4]);
+  var index = soko.levels.microa.length - 1;
+  var level = new soko.Level(soko.levels.microa[index]);
+  level = new soko.Level(LEVELS[4]);
   var state = level.getInitialState();
   level.draw(state, context);
   
@@ -74,22 +77,18 @@ soko.game = function() {
     }
     if (code == 32) {
       if (solution === undefined) {
-	var solver = new soko.Solver(soko.heuristic.AbstractHeuristic, soko.Heap, true);
-	solver.print = true;
-        solution = solver.solve(level, state);
-
-	solver = new soko.Solver();
-	solver.print = true;
-        solution = solver.solve(level, state);
-
-	solver = new soko.Solver(soko.heuristic.SimpleHeuristic, soko.Heap);
-	solver.print = true;
-        solution = solver.solve(level, state);
-
-	solver = new soko.Solver(soko.heuristic.SimpleHeuristic, soko.Heap, true);
-	solver.print = true;
-        solution = solver.solve(level, state);
-
+	var solvers = [
+	  new soko.Solver(soko.heuristic.AbstractHeuristic, soko.Heap, true),
+	  new soko.Solver(),
+	  new soko.Solver(soko.heuristic.SimpleHeuristic, soko.Heap),
+	  new soko.Solver(soko.heuristic.SimpleHeuristic, soko.Heap, true),
+	  new soko.Solver(soko.heuristic.BetterHeuristic, soko.Heap, true)
+	];
+	solvers.forEach(function(solver) {
+	  // solver.print = true;
+          solution = solver.solve(level, state);
+	  console.log(solver.solverStats);
+	});
         state = solution.pop();
       } else if (solution.length) {
         state = solution.pop();

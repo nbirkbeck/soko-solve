@@ -1,25 +1,8 @@
 goog.provide('soko.Heap');
 
+goog.require('soko.HeapInterface');
 goog.scope(function() {
 
-
-/**
- * @interface
- */
-soko.HeapInterface = function() {};
-
-/** @return {number} */
-soko.HeapInterface.prototype.size = function() {};
-
-/** @return {boolean} */
-soko.HeapInterface.prototype.empty = function() {};
-
-/** 
- * @param {{id:string}} value
- * @param {number} score
- */
-soko.HeapInterface.prototype.push = function(value, score) {};
-soko.HeapInterface.prototype.pop = function() {};
 
 
 /**
@@ -32,13 +15,16 @@ soko.Heap = function() {
 };
 var Heap = soko.Heap;
 
+
 Heap.prototype.size = function() {
   return this.data_.length;
 };
 
+
 Heap.prototype.empty = function() {
   return this.data_.length == 0;
 };
+
 
 Heap.prototype.push = function(value, score) {
   var index = this.data_.length;
@@ -46,6 +32,7 @@ Heap.prototype.push = function(value, score) {
   this.map_[value.id] = index;
   this.siftUp_(index);
 };
+
 
 Heap.prototype.pop = function() {
   this.swap_(0, this.data_.length - 1);
@@ -55,6 +42,7 @@ Heap.prototype.pop = function() {
   this.siftDown_(0);
   return v;
 };
+
 
 Heap.prototype.updateIfBetter = function(value, score) {
   var index = this.map_[value.id];
@@ -66,10 +54,17 @@ Heap.prototype.updateIfBetter = function(value, score) {
   }
 };
 
+
 Heap.prototype.exists = function(value) {
   return this.map_[value.id] !== undefined;
 };
 
+
+/**
+ * Sifts the value at the index down.
+ * @param {number} index
+ * @private
+ */
 Heap.prototype.siftDown_ = function(index) {
   var n = this.data_.length;
   while (2 * index + 1 < n) {
@@ -89,6 +84,12 @@ Heap.prototype.siftDown_ = function(index) {
   }
 };
 
+
+/**
+ * Sifts the value at the index up.
+ * @param {number} index
+ * @private
+ */
 Heap.prototype.siftUp_ = function(index) {
   while (index > 0) {
     var parent = Math.floor((index - 1) / 2);
@@ -101,6 +102,13 @@ Heap.prototype.siftUp_ = function(index) {
   }
 };
 
+
+/**
+ * Swaps the values at the indices.
+ * @param {number} i1
+ * @param {number} i2
+ * @private
+ */
 Heap.prototype.swap_ = function(i1, i2) {
   var v = this.data_[i1];
   this.data_[i1] = this.data_[i2];

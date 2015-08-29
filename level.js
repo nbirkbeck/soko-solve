@@ -44,14 +44,16 @@ Level.prototype.loadLevel = function(textGrid) {
       row[j] = constants.CellTypes.EMPTY;
       if (rows[i][j] == '#') {
 	row[j] = constants.CellTypes.WALL;
-      } else if (rows[i][j] == 'x') {
+      } 
+      if (rows[i][j] == 'x' || rows[i][j] == '%' || rows[i][j] == '@') {
 	row[j] = constants.CellTypes.CROSS;
 	this.crosses.push([j, i]);
-      } else if (rows[i][j] == '*') {
+      }
+      if (rows[i][j] == '*' || rows[i][j] == '@') {
 	this.startPos = [j, i];
 	this.pos = [j, i];
-	console.log(this.pos);
-      } else if (rows[i][j] == 'b') {
+      }
+      if (rows[i][j] == 'b' || rows[i][j] == '%') {
 	this.boxes.push([j, i]);
       }
     }
@@ -202,7 +204,7 @@ Level.prototype.computeShortestPath = function(state, opt_target) {
  * @param {!soko.State} state
  * @return {!Array.<!Array.<number|soko.State>>}
  */
-Level.prototype.getNeighborsAdvanced = function(state) {
+Level.prototype.getNeighborsCondensed = function(state) {
   var neighbors = [];
   var vis = this.computeShortestPath(state);
   for (var i = 0; i < state.boxes.length; ++i) {
@@ -268,7 +270,6 @@ Level.prototype.createAbstraction = function(start, end) {
   }
   return level;
 };
-
 });
 
 

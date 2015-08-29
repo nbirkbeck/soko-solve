@@ -5,6 +5,11 @@ goog.require('soko.types.GridPoint');
 goog.scope(function() {
 
 
+/**
+ * @typedef {number|string}
+ */
+soko.StateId;
+
 
 /** 
  * @param {!soko.types.GridPoint} pos
@@ -61,16 +66,26 @@ State.prototype.createAbstraction = function(start, end) {
 
 /**
  * Packs the state into a compact integer representation.
+ * @return {soko.StateId}
  */
 State.prototype.pack = function() {
   var sorted = this.boxes.sort(function(a, b) { 
     return State.hash(b) - State.hash(a);
   });
   var value = State.hash(this.pos);
-  for (var i = 0; i < sorted.length; i++) {
+  var top = Math.min(sorted.length, 4);
+  for (var i = 0; i < top; i++) {
     value += State.hash(sorted[i]) << ((i + 1) * State.NBITS);
   }
-  return value;
+  if (sorted.length <= 4) {
+    return value;
+  }
+  var hex = value.toString(16);
+  value = 0;
+  for (var i = top; i < sorted.length; ++i) {
+    value += State.hash(sorted[i]) << ((i - top) * State.NBITS);
+  }
+  return hex + "," + value.toString(16);
 };
 
 
@@ -92,6 +107,7 @@ State.prototype.getBlockIndex = function(pos) {
 
 /**
  * Gets a unique id for this state. Used for keeping track of visibility.
+ * @return {soko.StateId}
  */
 State.prototype.id = function() {
   return this.pack();

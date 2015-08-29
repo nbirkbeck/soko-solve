@@ -1,5 +1,7 @@
 goog.provide('soko.Queue');
 
+goog.require('soko.HeapInterface');
+
 goog.scope(function() {
 
 
@@ -42,7 +44,7 @@ Queue.prototype.pop = function() {
 
 
 Queue.prototype.exists = function(value) {
-    return this.map_[value.id] !== undefined;
+  return this.map_[value.id] !== undefined;
 };
 
 

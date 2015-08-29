@@ -171,7 +171,7 @@ BetterHeuristic.prototype.evaluate = function(state) {
     }
     dists = dists.sort();
     for (var k = 0; k < dists.length - 1; ++k) {
-      //	    value += dists[k];
+      value += dists[k];
     }
     if (value < minValue) {
       minValue = value;
