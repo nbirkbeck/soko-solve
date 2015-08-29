@@ -13,6 +13,14 @@ var constants = soko.constants;
 
 
 
+/**
+ * Returns true if the state is invalid (e.g., block ends up in a state
+ * where it is impossible to move it to a goal state.)
+ * 
+ * @param {!soko.Level} level
+ * @param {!soko.State} state
+ * @return {boolean}
+ */
 soko.heuristic.isInvalid = function(level, state) {
   for (var i = 0, numBoxes = state.boxes.length; i < numBoxes; ++i) {
     var box = state.boxes[i];
@@ -33,12 +41,28 @@ soko.heuristic.isInvalid = function(level, state) {
 
 
 /**
+ * @interface
+ */
+soko.heuristic.Heuristic = function() {};
+
+/** 
+ * @param {!soko.State} state
+ * @return {number}
+ */
+soko.heuristic.Heuristic.prototype.evaluate = function(state) {};
+
+
+/**
  * A null heuristic (doesn't give any estimate).
+ * @param {!soko.Level=} opt_level
+ * @implements {soko.heuristic.Heuristic}
  * @constructor
  */
 soko.heuristic.NullHeuristic = function(opt_level) {};
 
-soko.heuristic.NullHeuristic.prototype.eval = function(state) {
+
+/** @override */
+soko.heuristic.NullHeuristic.prototype.evaluate = function(state) {
   return 0;
 };
 
@@ -47,6 +71,7 @@ soko.heuristic.NullHeuristic.prototype.eval = function(state) {
 /**
  * An invalid heuristic (only gives high estimate to invalid states).
  * @param {!soko.Level} level
+ * @implements {soko.heuristic.Heuristic}
  * @constructor
  */
 soko.heuristic.InvalidHeuristic = function(level) {
@@ -55,7 +80,7 @@ soko.heuristic.InvalidHeuristic = function(level) {
 
 
 /** @override */
-soko.heuristic.InvalidHeuristic.prototype.eval = function(state) {
+soko.heuristic.InvalidHeuristic.prototype.evaluate = function(state) {
   if (soko.heuristic.isInvalid(this.level, state)) {
     return 1000;
   }
@@ -66,6 +91,7 @@ soko.heuristic.InvalidHeuristic.prototype.eval = function(state) {
 /**
  * A simple heuristic that uses manhattan distance.
  * @param {!soko.Level} level
+ * @implements {soko.heuristic.Heuristic}
  * @constructor
  */
 soko.heuristic.SimpleHeuristic = function(level) {
@@ -75,9 +101,9 @@ var SimpleHeuristic = soko.heuristic.SimpleHeuristic;
 
 
 /** @override */
-SimpleHeuristic.prototype.eval = function(state) {
+SimpleHeuristic.prototype.evaluate = function(state) {
   var value = 0;
-  var minBoxDistance = 1000;
+  var boxDistance = 1000;
   var level = this.level;
   if (soko.heuristic.isInvalid(this.level, state)) {
     return 1000;
@@ -86,25 +112,21 @@ SimpleHeuristic.prototype.eval = function(state) {
     var minDist = 1e10;
     var box = state.boxes[i];
     for (var j = 0, numCrosses = level.crosses.length; j < numCrosses; ++j) {
-      var dist = Math.abs(level.crosses[j][0] - box[0]) +
-	    Math.abs(level.crosses[j][1] - box[1]);
-      if (dist < minDist) {
-	minDist = dist;
-      }
+      minDist = Math.min(minDist, 
+			 soko.math.vectorDistanceL1(level.crosses[j], box));
     }
     value += minDist;
-    var boxDistance = Math.abs(box[0] - state.pos[0]) + 
-	  Math.abs(box[1] - state.pos[1]);
-    if (boxDistance < minBoxDistance)
-      minBoxDistance = boxDistance;
+    boxDistance = Math.min(soko.math.vectorDistanceL1(box, state.pos), 
+			   boxDistance);
   }
-  return value + minBoxDistance;
+  return value + boxDistance;
 };
 
 
 /**
  * An attempt to get a better heuristic.
  * @param {!soko.Level} level
+ * @implements {soko.heuristic.Heuristic}
  * @constructor
  */
 soko.heuristic.BetterHeuristic = function(level) {
@@ -114,7 +136,7 @@ var BetterHeuristic = soko.heuristic.BetterHeuristic;
 
 
 /** @override */
-BetterHeuristic.prototype.eval = function(state) {
+BetterHeuristic.prototype.evaluate = function(state) {
   var numOptions = soko.math.factorial(state.boxes.length);
   var minValue = 1e10;
   
@@ -141,8 +163,7 @@ BetterHeuristic.prototype.eval = function(state) {
 	}
       }
       var box = state.boxes[j];
-      var dist = Math.abs(level.crosses[k][0] - box[0]) +
-	    Math.abs(level.crosses[k][1] - box[1]);
+      var dist = soko.math.vectorDistanceL1(this.level.crosses[k], box);
       option /= divisor;
       value += dist;
       taken[k] = true;
@@ -163,6 +184,7 @@ BetterHeuristic.prototype.eval = function(state) {
 /**
  * A heuristic that abstracts out the problem and solves a simple problem.
  * @param {!soko.Level} level
+ * @implements {soko.heuristic.Heuristic}
  * @constructor
  */
 soko.heuristic.AbstractHeuristic = function(level) {
@@ -180,7 +202,7 @@ soko.heuristic.AbstractHeuristic = function(level) {
 
 
 /** @override */
-soko.heuristic.AbstractHeuristic.prototype.eval = function(state) {
+soko.heuristic.AbstractHeuristic.prototype.evaluate = function(state) {
   var value = 0;
   for (var i = 0; i < this.abstractLevels.length; i++) {
     var start = this.abstractionSize * i;

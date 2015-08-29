@@ -5,6 +5,7 @@ goog.scope(function() {
 
 
 /**
+ * @implements {soko.HeapInterface}
  * @constructor
  */
 soko.Queue = function() {

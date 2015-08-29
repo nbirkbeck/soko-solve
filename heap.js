@@ -4,7 +4,27 @@ goog.scope(function() {
 
 
 /**
+ * @interface
+ */
+soko.HeapInterface = function() {};
+
+/** @return {number} */
+soko.HeapInterface.prototype.size = function() {};
+
+/** @return {boolean} */
+soko.HeapInterface.prototype.empty = function() {};
+
+/** 
+ * @param {{id:string}} value
+ * @param {number} score
+ */
+soko.HeapInterface.prototype.push = function(value, score) {};
+soko.HeapInterface.prototype.pop = function() {};
+
+
+/**
  * @constructor
+ * @implements {soko.HeapInterface}
  */
 soko.Heap = function() {
   this.data_ = [];

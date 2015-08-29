@@ -1,5 +1,6 @@
 goog.provide('soko.Solver');
 
+goog.require('soko.Heap');
 goog.require('soko.Level');
 goog.require('soko.State');
 goog.require('soko.Queue');
@@ -7,12 +8,15 @@ goog.require('soko.heuristic.NullHeuristic');
 
 goog.scope(function() {
   
-  
+
 /**
+ * @param {function (new:soko.heuristic.Heuristic, !soko.Level)=} opt_heuristic heuristicType
+ * @param {function (new:soko.HeapInterface)=} opt_heapType heap type
+ * @param {boolean=} opt_advanced whether to use advanced moves.
  * @constructor
  */
-soko.Solver = function(opt_heuristicType, opt_heapType, opt_advanced) {
-  this.heuristicType = opt_heuristicType || soko.heuristic.NullHeuristic;
+soko.Solver = function(opt_heuristic, opt_heapType, opt_advanced) {
+  this.heuristicType = opt_heuristic || soko.heuristic.NullHeuristic;
   this.heapType = opt_heapType || soko.Queue;
   this.advanced = opt_advanced || false;
   this.print = false;
@@ -21,9 +25,9 @@ var Solver = soko.Solver;
 
 
 /**
- * @param {!soko.Level}
- * @param {!soko.State}
- * @return {!soko.types.GridPosArray}
+ * @param {!soko.Level} level
+ * @param {!soko.State} state
+ * @return {!Array.<soko.State>}
  */
 Solver.prototype.solve = function(level, state) {
   var solution = [];
@@ -32,7 +36,7 @@ Solver.prototype.solve = function(level, state) {
   var info = {
     'state': state,
     'g': 0,
-    'h': heuristic.eval(state),
+    'h': heuristic.evaluate(state),
     'parent': null,
     'id': state.id()
   };
@@ -65,7 +69,7 @@ Solver.prototype.solve = function(level, state) {
       if (visited[id]) continue;
       
       var g = info.g + neighbors[i][0];
-      var h = heuristic.eval(neighbors[i][1]);
+      var h = heuristic.evaluate(neighbors[i][1]);
       var f = g + h;
       var child = {
 	'state': neighbors[i][1],

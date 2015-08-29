@@ -12,13 +12,13 @@ var constants = soko.constants;
  * @constructor
  */
 soko.Level = function(opt_textGrid) {
-  /** @param {Array.<Array.<number>>} */
+  /** @type {Array.<Array.<constants.CellTypes>>} */
   this.grid = [];
-  /** @param {!types.GridPoint} */
+  /** @type {!soko.types.GridPoint} */
   this.startPos = [];
-  /** @param {!types.GridPointArray} */
+  /** @type {!soko.types.GridPointArray} */
   this.boxes = [];
-  /** @param {!types.GridPointArray} */
+  /** @type {!soko.types.GridPointArray} */
   this.crosses = [];
 
   if (opt_textGrid) {
@@ -29,7 +29,7 @@ var Level = soko.Level;
 
 
 /**
- * @param {string} Text grid.
+ * @param {string} textGrid Text grid
  */
 Level.prototype.loadLevel = function(textGrid) {
   var rows = textGrid.split('\n'); 
@@ -62,8 +62,8 @@ Level.prototype.loadLevel = function(textGrid) {
 
 /**
  * Draws the level to the given context.
- * @param {!soko.State}
- * @param {Object}
+ * @param {!soko.State} state
+ * @param {Object} context
  */
 Level.prototype.draw = function(state, context) {
   var BLOCK_SIZE = constants.BLOCK_SIZE;
@@ -143,13 +143,13 @@ Level.prototype.getCellType = function(pos) {
 
 /**
  * @param {!soko.State} state
- * @return {!Array.<!Array<{number|soko.State}>>}
+ * @return {!Array.<!Array.<number|soko.State>>}
  */
 Level.prototype.getNeighbors = function(state) {
   var neighbors = [];
   for (var i = 0; i < 4; ++i) {
     var neighState = new soko.State(state.pos, state.boxes);
-    if (this.move(neighState, i)) {
+    if (this.move(neighState, /** @type {soko.constants.Directions} */(i))) {
       neighbors.push([1, neighState]);
     }
   }
@@ -159,7 +159,7 @@ Level.prototype.getNeighbors = function(state) {
 
 /**
  * @param {!soko.State} state
- * @param {!soko.types.GridPoint} opt_target
+ * @param {!soko.types.GridPoint=} opt_target
  * @return {Object}
  */
 Level.prototype.computeShortestPath = function(state, opt_target) {
@@ -200,7 +200,7 @@ Level.prototype.computeShortestPath = function(state, opt_target) {
 
 /**
  * @param {!soko.State} state
- * @return {!Array.<!Array<{number|soko.State}>>}
+ * @return {!Array.<!Array.<number|soko.State>>}
  */
 Level.prototype.getNeighborsAdvanced = function(state) {
   var neighbors = [];
