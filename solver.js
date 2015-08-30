@@ -148,7 +148,7 @@ Solver.prototype.backtrack_ = function(level, node) {
       var path = level.computeShortestPath(parent.state, node.pusher);
       solution.push(node.state);
       for (var i = 0; i < path.length - 1; i++) {
-	var state = new soko.State(path[i], parent.state.boxes);
+	var state = new soko.State(path[i], parent.state.boxes, level.numCareBoxes);
 	solution.push(state);
       }
     } else {

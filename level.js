@@ -21,6 +21,8 @@ soko.Level = function(opt_textGrid) {
   /** @type {!soko.types.GridPointArray} */
   this.crosses = [];
 
+  this.numCareBoxes = 0;
+
   if (opt_textGrid) {
     this.loadLevel(opt_textGrid);
   }
@@ -150,7 +152,7 @@ Level.prototype.getCellType = function(pos) {
 Level.prototype.getNeighbors = function(state) {
   var neighbors = [];
   for (var i = 0; i < 4; ++i) {
-    var neighState = new soko.State(state.pos, state.boxes);
+    var neighState = new soko.State(state.pos, state.boxes, this.numCareBoxes);
     if (this.move(neighState, /** @type {soko.constants.Directions} */(i))) {
       neighbors.push([1, neighState]);
     }
@@ -224,7 +226,7 @@ Level.prototype.getNeighborsCondensed = function(state) {
 
       var distance = vis[soko.State.hash(pusher)];
       if (distance !== undefined) {
-	var neighState = new soko.State(box, state.boxes);
+	var neighState = new soko.State(box, state.boxes, this.numCareBoxes);
 	neighState.boxes[i] = target;
 	neighbors.push([distance, neighState, pusher]);
       }
@@ -239,7 +241,8 @@ Level.prototype.getNeighborsCondensed = function(state) {
  * @return {boolean}
  */
 Level.prototype.isGoal = function(state) {
-  for (var i = 0; i < state.boxes.length; ++i) {
+  var numBoxes = this.numCareBoxes > 0 ? this.numCareBoxes : state.boxes.length;
+  for (var i = 0; i < numBoxes; ++i) {
     var type = this.getCellType(state.boxes[i]);
     if (type != constants.CellTypes.CROSS) {
       return false;
@@ -253,7 +256,7 @@ Level.prototype.isGoal = function(state) {
  * @return {!soko.State}
  */
 Level.prototype.getInitialState = function() {
-  return new soko.State(this.startPos, this.boxes);
+  return new soko.State(this.startPos, this.boxes, this.numCareBoxes);
 };
 
 
@@ -268,7 +271,14 @@ Level.prototype.createAbstraction = function(start, end) {
   level.startPos = this.startPos;
   level.crosses = this.crosses;
   level.boxes = [];
+  level.numCareBoxes = end - start;
   for (var i = start; i < end; i++) {
+    level.boxes.push(this.boxes[i].slice(0, 2));
+  }
+  for (var i = 0; i < start; i++) {
+    level.boxes.push(this.boxes[i].slice(0, 2));
+  }
+  for (var i = end; i < this.boxes.length; i++) {
     level.boxes.push(this.boxes[i].slice(0, 2));
   }
   return level;

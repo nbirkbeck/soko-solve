@@ -14,12 +14,16 @@ soko.StateId;
 /** 
  * @param {!soko.types.GridPoint} pos
  * @param {!soko.types.GridPointArray} boxes
+ * @param {number=} opt_numCareBoxes
  * @constructor
  */
-soko.State = function(pos, boxes) {
+soko.State = function(pos, boxes, opt_numCareBoxes) {
   /** @type {!soko.types.GridPoint} */
   this.pos = [pos[0], pos[1]];
   
+  /** @type {number} */
+  this.numCareBoxes = opt_numCareBoxes || 0;
+
   /** @type {!soko.types.GridPointArray} */
   this.boxes = boxes.map(function(x) {
     return x;
@@ -69,9 +73,10 @@ State.prototype.createAbstraction = function(start, end) {
  * @return {soko.StateId}
  */
 State.prototype.pack = function() {
-  var sorted = this.boxes.sort(function(a, b) { 
-    return State.hash(b) - State.hash(a);
-  });
+  var sorted = this.boxes.slice(0, this.numCareBoxes).concat(
+    this.boxes.slice(this.numCareBoxes).sort(function(a, b) { 
+      return State.hash(b) - State.hash(a);
+    }));
   var value = State.hash(this.pos);
   var top = Math.min(sorted.length, 4);
   for (var i = 0; i < top; i++) {
