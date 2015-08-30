@@ -272,9 +272,11 @@ Level.prototype.createAbstraction = function(start, end) {
   level.crosses = this.crosses;
   level.boxes = [];
   level.numCareBoxes = end - start;
+
   for (var i = start; i < end; i++) {
     level.boxes.push(this.boxes[i].slice(0, 2));
   }
+
   for (var i = 0; i < start; i++) {
     level.boxes.push(this.boxes[i].slice(0, 2));
   }

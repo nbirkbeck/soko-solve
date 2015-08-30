@@ -178,7 +178,8 @@ SimpleHeuristic.prototype.evaluate = function(state) {
     //    soko.heuristic.isInvalid(level, state)) { 
     return 1000;
   }
-  for (var i = 0, numBoxes = state.boxes.length; i < numBoxes; ++i) {
+  var numBoxes = state.numCareBoxes > 0 ? state.numCareBoxes : state.boxes.length;
+  for (var i = 0; i < numBoxes; ++i) {
     var minDist = 1e10;
     var box = state.boxes[i];
     for (var j = 0, numCrosses = level.crosses.length; j < numCrosses; ++j) {

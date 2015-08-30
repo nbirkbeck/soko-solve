@@ -64,7 +64,7 @@ State.hash = function(pos) {
  * @return {!soko.State}
  */ 
 State.prototype.createAbstraction = function(start, end) {
-  return new State(this.pos, this.boxes.slice(start, end));
+  return new State(this.pos, this.boxes.slice(start, end), this.numCareBoxes);
 };
 
 
