@@ -35,6 +35,13 @@ constants.Directions = {
 constants.BLOCK_SIZE = 32;
 
 
+/** 
+ * Max number of blocks in the canvas.
+ * @constat {number}
+ */
+constants.MAX_CANVAS_BLOCKS = 12;
+
+
 /**
  * Offsets (for each direction) of movement.
  * @constant {!Array.<!Array.<number>>}

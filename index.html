@@ -1,16 +1,54 @@
 <html>
   <head>
   <style>
-   #canvas {
-     width: 320px;
-     height: 480px;
-   }
+#canvas {
+  position: relative;
+  border: 1px solid #eee;
+  width: 384px;
+  height: 384px;
+  left: 50%;
+  margin-left: -192px;
+}
+#results {
+  position: relative;
+  width: 100%;
+  border: 1px solid #eee;
+}
+#results table {
+  width: 100%;
+}
+
+body {
+  margin-left: 120px;
+  margin-right: 120px;
+}
+.container {
+  position: relative;
+  width: 500px;
+  margin-left: -250px;
+  left: 50%;
+}
   </style>
   <script src="output.js"></script>
   </head>
   <body>
-    <canvas id="canvas" width='320' height='480'>
-    </canvas>
+    <div class="container">
+      <div>
+	<h3 id="name"></h3>
+	<canvas id="canvas" width='384' height='384'>
+	</canvas>
+      </div>
+      <button id="prev">prev</button>
+      <button id="next">next</button>
+      &nbsp;&nbsp;
+      <button id="solve">solve</button>
+      <button id="move">move</button>
+      <div>
+	<h3>Solution stats</h3>
+	<div id="results">
+	</div>
+      </div>
+    </div>
     <script>
       soko.game();
     </script>

@@ -7,6 +7,10 @@ goog.scope(function() {
 
 
 /**
+ * Implementation of HeapInterface that behaves like a queue.
+ * Priority is not used (intention is to use same code as for
+ * bfs).
+ * 
  * @implements {soko.HeapInterface}
  * @constructor
  */

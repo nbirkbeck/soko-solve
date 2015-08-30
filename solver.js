@@ -12,10 +12,10 @@ goog.scope(function() {
  * Statistics pulled from the solver.
  * 
  * @typedef {{
- *   nodesVisited: number,
- *   finalQueueSize: number,
- *   elapsedTime: number,
- *   solutionLength: number
+ *   nodesVisited: (number|string),
+ *   finalQueueSize: (number|string),
+ *   elapsedTime: (number|string),
+ *   solutionLength: (number|string)
  * }}
  */
 soko.SolverStats;
@@ -56,7 +56,7 @@ soko.Solver = function(opt_heuristic, opt_heapType, opt_condensed) {
   /** @type {boolean} */
   this.print = false;
   /** @type {soko.SolverStats} */
-  this.solverStats;
+  this.solverStats = {'elapsedTime': '', 'solutionLength': '', 'finalQueueSize': '', 'nodesVisited': ''};
 };
 var Solver = soko.Solver;
 
@@ -81,6 +81,7 @@ Solver.prototype.solve = function(level, state) {
   var numVisited = 0;
   var visited = {};
   var getNeighbors = level.getNeighbors.bind(level);
+  var invalidMap = new soko.heuristic.InvalidMap(level);
   if (this.condensed_) {
     getNeighbors = level.getNeighborsCondensed.bind(level);
   }
@@ -91,6 +92,10 @@ Solver.prototype.solve = function(level, state) {
     node = top.value;
     if (this.print && numVisited % 5000 == 0) {
       console.log(top.score + ' ' + numVisited + ' ' + Q.size());
+    }
+    if (numVisited % 20000 == 0) {
+      var elapsedTime = (Date.now() - startTime) / 1000.0;
+      if (elapsedTime > 60) break;
     }
     
     visited[node.id] = true;
@@ -104,6 +109,10 @@ Solver.prototype.solve = function(level, state) {
     for (var i = 0, length = neighbors.length; i < length; ++i) {
       var id = neighbors[i][1].id();
       if (visited[id]) continue;
+      // This is a very important pruning step for the BFS and heuristics
+      // that were not finding invalid states.
+      if (invalidMap.isInvalid(neighbors[i][1])) continue;
+
       var neighState = /** @type {!soko.State} */(neighbors[i][1]);
       var g = node.g + /** @type {number} */(neighbors[i][0]);
       var h = heuristic.evaluate(neighState);
@@ -148,7 +157,7 @@ Solver.prototype.backtrack_ = function(level, node) {
       var path = level.computeShortestPath(parent.state, node.pusher);
       solution.push(node.state);
       for (var i = 0; i < path.length - 1; i++) {
-	var state = new soko.State(path[i], parent.state.boxes, level.numCareBoxes);
+	var state = new soko.State(path[i], parent.state.boxes);
 	solution.push(state);
       }
     } else {

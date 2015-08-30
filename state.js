@@ -14,16 +14,12 @@ soko.StateId;
 /** 
  * @param {!soko.types.GridPoint} pos
  * @param {!soko.types.GridPointArray} boxes
- * @param {number=} opt_numCareBoxes
  * @constructor
  */
-soko.State = function(pos, boxes, opt_numCareBoxes) {
+soko.State = function(pos, boxes) {
   /** @type {!soko.types.GridPoint} */
   this.pos = [pos[0], pos[1]];
   
-  /** @type {number} */
-  this.numCareBoxes = opt_numCareBoxes || 0;
-
   /** @type {!soko.types.GridPointArray} */
   this.boxes = boxes.map(function(x) {
     return x;
@@ -52,7 +48,7 @@ State.NBITS = 6; // Should be log2(MAX_WIDTH^2);
  * @param {!soko.types.GridPoint} pos
  * @return {number}
  */
-State.hash = function(pos) {
+State.pointToIndex = function(pos) {
   return (pos[1] - 1) * State.MAX_WIDTH + (pos[0] - 1);
 };
 
@@ -64,7 +60,7 @@ State.hash = function(pos) {
  * @return {!soko.State}
  */ 
 State.prototype.createAbstraction = function(start, end) {
-  return new State(this.pos, this.boxes.slice(start, end), this.numCareBoxes);
+  return new State(this.pos, this.boxes.slice(start, end));
 };
 
 
@@ -73,22 +69,22 @@ State.prototype.createAbstraction = function(start, end) {
  * @return {soko.StateId}
  */
 State.prototype.pack = function() {
-  var sorted = this.boxes.slice(0, this.numCareBoxes).concat(
-    this.boxes.slice(this.numCareBoxes).sort(function(a, b) { 
-      return State.hash(b) - State.hash(a);
-    }));
-  var value = State.hash(this.pos);
+  var sorted = this.boxes.sort(function(a, b) { 
+    return State.pointToIndex(b) - State.pointToIndex(a);
+  });
+  var value = State.pointToIndex(this.pos);
   var top = Math.min(sorted.length, 4);
   for (var i = 0; i < top; i++) {
-    value += State.hash(sorted[i]) << ((i + 1) * State.NBITS);
+    value += State.pointToIndex(sorted[i]) << ((i + 1) * State.NBITS);
   }
   if (sorted.length <= 4) {
     return value;
   }
+  // TODO(birkbeck): handle case with more than 10 boxes.
   var hex = value.toString(16);
   value = 0;
   for (var i = top; i < sorted.length; ++i) {
-    value += State.hash(sorted[i]) << ((i - top) * State.NBITS);
+    value += State.pointToIndex(sorted[i]) << ((i - top) * State.NBITS);
   }
   return hex + "," + value.toString(16);
 };

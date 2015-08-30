@@ -1,0 +1,112 @@
+Started out with just a simple BFS search, which was taking up to 10s of seconds
+for some of the cases. I added heuristics, but these didn't immediately improve
+the runtime (overhead of heap, etc.). I added some checks for invalid states to
+return large values in these cases, and noticed that this improved and sometimes
+trumped the heuristic value. Simple heuristic only prunes out about 0.5 of the
+nodes.
+
+Added the abstraction heuristic. This started performing better when using max
+of the number of moves for an individual piece. Invalid states or other heuristic
+wasn't helping here. Then added the condensed states, so you don't include the
+moves that aren't pushing a box. This with abstract heuristic was performing
+best (in terms of runtime). Using abstractions with multiple pieces would expand
+a few less nodes, but was much slower.
+
+After changing the unique id from a vector of ints that was converted to a string,
+to a single number, the runtime improved about 2.5-3x and was soon under 2s. For
+cases where we would overflow a 32-bit integer, we still have to fall back to the
+other implementation. Seems 64-bit integers are not supported in javascript--which
+is lame.
+
+Some observations. The abstract heuristic was typically about 10x less nodes expanded
+than a bfs, and the condensed version was about 10x less than this. This tended to 
+hold regardless of the heuristic.
+
+On the way home, was playing around with a better mapping of invalid states. This
+didn't seem to give huge gains in the abstract case, but does help out the other
+simple heuristics and when added into the search directly gives a huge boost
+over the BFS. Some of the BFS would not complete on cases with lots of blocks.
+(e.g., "microa level:7"). However, these are still the cases where the abstraction
+still performs best:
+
+"microa level: 7"
+name   elapsed time	expanded
+abstract+condense	0.352	2541
+abstract		0.528	11691
+simpleheur+condense	2.94	32457
+simpleheur		3.462	122118
+bfs+condense		1.72	23327
+bfs			8.645	388377
+
+"microc level: 19"
+name	elapsed time	expanded
+abstract+condense	0.655	3434
+abstract		0.67	12469
+simpleheur+condense	3.916	25933
+simpleheur		3.236	87921
+bfs+condense		67.114	220000 (didnt finish)
+bfs			64.954	460000 (didnt finish)
+
+The reason that the invalid states didn't help the abstracted heuristic, and
+the reason that the abstracted heuristic was performing well was because it was
+basically already finding the invalid states through its single block searches
+which would end up in a state where no solution was possible and terminate
+and cache a large heuristic value (solution length < 0).
+
+The level which took me several attempts to solve manually, the one that got me
+thinking about doing this at all, was "microc level:8". After adding the pruning
+of invalid nodes (bfs with condensed moves is now the fastest, and the heuristic
+only expands a few less nodes):
+
+name		elapsed time	expanded
+abstract+condense  	1.524	28494
+abstract	   	3.921	156623
+simpleheur+condense	0.937	28686
+simpleheur		2.535	157862
+bfs+condense		0.769	28706
+bfs			1.993	158013
+
+Before adding pruning everywhere:
+name   elapsed time   expanded	sol.length
+abstract+condense     1.494	28505	165
+abstract	      3.133	156721	165
+simpleheur+condense   1.255	44239	165
+simpleheur	      3.105	235409	165
+bfs+condense	      3.51	183370	192
+bfs		      9.593	983861	165
+
+And using full pruning in the heuristic only
+name   elapsed time   expanded	sol.length
+abstract+condense     1.408	28505	165
+abstract	      3.029	156721	165
+simpleheur+condense   0.758	28688	165
+simpleheur	      2.127	157870	165
+bfs+condense	      3.607	183370	192
+bfs		      9.402	983861	165
+
+
+Some other interesting timings:
+microc level:12
+name   elapsed time   expanded
+abstract+condense     0.456	9679
+abstract	      1.366	52603
+simpleheur+condense   0.321	10889
+simpleheur	      0.981	57751
+bfs+condense	      0.286	11767
+bfs		      0.914	61080
+
+
+microc level:20
+name		elapsed time	expanded
+abstract+condense     0.093   1599
+abstract	      0.233   9425
+simpleheur+condense   0.049   2152
+simpleheur	      0.169   11958
+bfs+condense	      0.091   4211
+bfs		      0.174   15449
+
+
+Conclusion. The heuristics all kind of suck, or are too expensive to compute
+and don't give any benefit. Adding condensed moves and avoiding terminal states
+early (which is something you do when you are playing) is good. Most of the problems
+are not that hard.

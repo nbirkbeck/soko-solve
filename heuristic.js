@@ -1,6 +1,6 @@
 goog.provide('soko.heuristic');
+goog.provide('soko.heuristic.InvalidMap');
 goog.provide('soko.heuristic.NullHeuristic');
-goog.provide('soko.heuristic.InvalidHeuristic');
 goog.provide('soko.heurisitc.SimplelHeuristic');
 goog.provide('soko.heurisitc.AbstractHeuristic');
 
@@ -13,8 +13,18 @@ var constants = soko.constants;
 
 
 /**
+ * A very large score, basically inf. No valid heuristic value (or number 
+ * of moves should be this large)
+ * @const {number}
+ */
+soko.heuristic.MAX_SCORE = 10000;
+
+
+/**
  * Constructs a mapping from a point to whether a block at that point
- * would be an invalid state.
+ * would be an invalid state. This could be used in a heuristic, but
+ * is more general purpose and can be used in the search itself to 
+ * prune out invalid states.
  * 
  * @param {!soko.Level} level
  * @constructor
@@ -28,7 +38,7 @@ soko.heuristic.InvalidMap = function(level) {
       if (cellType == constants.CellTypes.CROSS || 
 	  cellType == constants.CellTypes.WALL)
 	continue;
-      var id = soko.State.hash(box);
+      var id = soko.State.pointToIndex(box);
       if (this.map_[id]) continue;
 
       var upBlocked = level.getCellType([box[0], box[1] - 1]) < constants.CellTypes.EMPTY;
@@ -67,45 +77,18 @@ soko.heuristic.InvalidMap.prototype.tryMarkLine_ = function(level, pos, dir, blo
   var cur = [pos[0], pos[1]];
   for (var k = pos[dir] + 1; k < end; ++k) {
     cur[dir] = k;
-    this.map_[soko.State.hash(cur)] = true;
+    this.map_[soko.State.pointToIndex(cur)] = true;
   }
 };
 
 soko.heuristic.InvalidMap.prototype.isInvalid = function(state) {
   for (var i = 0; i < state.boxes.length; ++i) {
-    if (this.map_[soko.State.hash(state.boxes[i])])
+    if (this.map_[soko.State.pointToIndex(state.boxes[i])])
       return true;
   }
   return false;
 };
 
-
-
-/**
- * Returns true if the state is invalid (e.g., block ends up in a state
- * where it is impossible to move it to a goal state.)
- * 
- * @param {!soko.Level} level
- * @param {!soko.State} state
- * @return {boolean}
- */
-soko.heuristic.isInvalid = function(level, state) {
-  for (var i = 0, numBoxes = state.boxes.length; i < numBoxes; ++i) {
-    var box = state.boxes[i];
-    if (level.getCellType(box) == constants.CellTypes.CROSS)
-      continue;
-    var upBlocked = level.getCellType([box[0], box[1] - 1]) < constants.CellTypes.EMPTY;
-    var downBlocked = level.getCellType([box[0], box[1] + 1]) < constants.CellTypes.EMPTY;
-    var leftBlocked = level.getCellType([box[0] - 1, box[1]]) < constants.CellTypes.EMPTY;
-    var rightBlocked = level.getCellType([box[0] + 1, box[1]]) < constants.CellTypes.EMPTY;
-    var sideBlocked = leftBlocked || rightBlocked;
-    var topBlocked = upBlocked || downBlocked;
-    if (upBlocked && sideBlocked) {
-      return true;
-    }
-  }
-  return false;
-};
 
 
 /**
@@ -137,26 +120,6 @@ soko.heuristic.NullHeuristic.prototype.evaluate = function(state) {
 
 
 /**
- * An invalid heuristic (only gives high estimate to invalid states).
- * @param {!soko.Level} level
- * @implements {soko.heuristic.Heuristic}
- * @constructor
- */
-soko.heuristic.InvalidHeuristic = function(level) {
-  this.level = level;
-};
-
-
-/** @override */
-soko.heuristic.InvalidHeuristic.prototype.evaluate = function(state) {
-  if (soko.heuristic.isInvalid(this.level, state)) {
-    return 1000;
-  }
-  return 0;
-};
-
-
-/**
  * A simple heuristic that uses manhattan distance.
  * @param {!soko.Level} level
  * @implements {soko.heuristic.Heuristic}
@@ -172,14 +135,12 @@ var SimpleHeuristic = soko.heuristic.SimpleHeuristic;
 /** @override */
 SimpleHeuristic.prototype.evaluate = function(state) {
   var value = 0;
-  var boxDistance = 1000;
+  var boxDistance = soko.heuristic.MAX_SCORE;
   var level = this.level_;
-  if (this.invalidMap_.isInvalid(state)) {
-    //    soko.heuristic.isInvalid(level, state)) { 
-    return 1000;
-  }
-  var numBoxes = state.numCareBoxes > 0 ? state.numCareBoxes : state.boxes.length;
-  for (var i = 0; i < numBoxes; ++i) {
+  // Used to use the invalid map as a heuristic.
+  //if (this.invalidMap_.isInvalid(state))
+  //  return soko.heuristic.MAX_SCORE;
+  for (var i = 0; i < state.boxes.length; ++i) {
     var minDist = 1e10;
     var box = state.boxes[i];
     for (var j = 0, numCrosses = level.crosses.length; j < numCrosses; ++j) {
@@ -202,6 +163,7 @@ SimpleHeuristic.prototype.evaluate = function(state) {
  */
 soko.heuristic.BetterHeuristic = function(level) {
   this.level = level;
+  this.invalidMap_ = new soko.heuristic.InvalidMap(level);
 };
 var BetterHeuristic = soko.heuristic.BetterHeuristic;
 
@@ -211,8 +173,8 @@ BetterHeuristic.prototype.evaluate = function(state) {
   var numOptions = soko.math.factorial(state.boxes.length);
   var minValue = 1e10;
   
-  if (soko.heuristic.isInvalid(this.level, state)) {
-    return 1000;
+  if (this.invalidMap_.isInvalid(state)) {
+    return soko.heuristic.MAX_SCORE;
   }
   
   /* This didn't help either...
@@ -243,7 +205,7 @@ BetterHeuristic.prototype.evaluate = function(state) {
       }
       var box = state.boxes[j];
       var dist = soko.math.vectorDistanceL1(this.level.crosses[k], box); 
-      // var dist = distanceMaps[j][soko.State.hash(this.level.crosses[k])] - 1;
+      // var dist = distanceMaps[j][soko.State.pointToIndex(this.level.crosses[k])] - 1;
       option /= divisor;
       value += dist;
       taken[k] = true;
@@ -305,7 +267,7 @@ soko.heuristic.AbstractHeuristic.prototype.evaluate = function(state) {
       thisValue = solution.length - 1;
       // If solution is empty, it is an unreachable state.
       if (thisValue < 0) {
-	thisValue = 10000;
+	thisValue = soko.heuristic.MAX_SCORE;
       }
       this.cache_[id] = thisValue;
       for (var j = 0; j < solution.length; j++) {
