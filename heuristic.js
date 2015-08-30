@@ -12,6 +12,74 @@ goog.scope(function() {
 var constants = soko.constants;
 
 
+/**
+ * Constructs a mapping from a point to whether a block at that point
+ * would be an invalid state.
+ * 
+ * @param {!soko.Level} level
+ * @constructor
+ */
+soko.heuristic.InvalidMap = function(level) {
+  this.map_ = {};
+  for (var i = 0; i < level.grid.length; ++i) {
+    for (var j = 0; j < level.grid[i].length; ++j) {
+      var box = [j, i];
+      var cellType = level.getCellType(box);
+      if (cellType == constants.CellTypes.CROSS || 
+	  cellType == constants.CellTypes.WALL)
+	continue;
+      var id = soko.State.hash(box);
+      if (this.map_[id]) continue;
+
+      var upBlocked = level.getCellType([box[0], box[1] - 1]) < constants.CellTypes.EMPTY;
+      var downBlocked = level.getCellType([box[0], box[1] + 1]) < constants.CellTypes.EMPTY;
+      var leftBlocked = level.getCellType([box[0] - 1, box[1]]) < constants.CellTypes.EMPTY;
+      var rightBlocked = level.getCellType([box[0] + 1, box[1]]) < constants.CellTypes.EMPTY;
+      if ((leftBlocked || rightBlocked) && (upBlocked || downBlocked)) {
+	this.map_[id] = true;
+      }
+      if ((upBlocked || downBlocked) && leftBlocked) {
+	this.tryMarkLine_(level, box, 0, [0, upBlocked ? -1 : 1]);
+      }
+      if ((rightBlocked || leftBlocked) && upBlocked) {
+	this.tryMarkLine_(level, box, 1, [leftBlocked ? -1 : 1, 0]);
+      }
+    }
+  }
+};
+
+soko.heuristic.InvalidMap.prototype.tryMarkLine_ = function(level, pos, dir, blockOffset) {
+  var end = dir == 0 ? level.grid[pos[1]].length : level.grid.length;
+  var cur = [pos[0], pos[1]];
+  for (var k = pos[dir] + 1; k < end; ++k) {
+    cur[dir] = k;
+    var curType = level.getCellType(cur);
+    if (curType < constants.CellTypes.EMPTY) {
+      end = k;
+      break;
+    }
+    var blockPos = soko.math.vectorAdd(cur, blockOffset);
+    var neighFree = level.getCellType(blockPos) >= constants.CellTypes.EMPTY;
+    if ((curType == constants.CellTypes.CROSS) || neighFree) {
+      return;
+    }
+  }
+  var cur = [pos[0], pos[1]];
+  for (var k = pos[dir] + 1; k < end; ++k) {
+    cur[dir] = k;
+    this.map_[soko.State.hash(cur)] = true;
+  }
+};
+
+soko.heuristic.InvalidMap.prototype.isInvalid = function(state) {
+  for (var i = 0; i < state.boxes.length; ++i) {
+    if (this.map_[soko.State.hash(state.boxes[i])])
+      return true;
+  }
+  return false;
+};
+
+
 
 /**
  * Returns true if the state is invalid (e.g., block ends up in a state
@@ -95,7 +163,8 @@ soko.heuristic.InvalidHeuristic.prototype.evaluate = function(state) {
  * @constructor
  */
 soko.heuristic.SimpleHeuristic = function(level) {
-  this.level = level;
+  this.level_ = level;
+  this.invalidMap_ = new soko.heuristic.InvalidMap(level);
 };
 var SimpleHeuristic = soko.heuristic.SimpleHeuristic;
 
@@ -104,8 +173,9 @@ var SimpleHeuristic = soko.heuristic.SimpleHeuristic;
 SimpleHeuristic.prototype.evaluate = function(state) {
   var value = 0;
   var boxDistance = 1000;
-  var level = this.level;
-  if (soko.heuristic.isInvalid(this.level, state)) {
+  var level = this.level_;
+  if (this.invalidMap_.isInvalid(state)) {
+    //    soko.heuristic.isInvalid(level, state)) { 
     return 1000;
   }
   for (var i = 0, numBoxes = state.boxes.length; i < numBoxes; ++i) {
@@ -197,37 +267,48 @@ BetterHeuristic.prototype.evaluate = function(state) {
  * @constructor
  */
 soko.heuristic.AbstractHeuristic = function(level) {
-  this.level = level;
-  this.abstractLevels = [];
-  this.cache = {};
-  var numBoxes = level.boxes.length;
-  this.abstractionSize = 1; // numBoxes >= 4 ? 2 : 1;
-  for (var i = 0; i < numBoxes; i += this.abstractionSize) {
-    this.abstractLevels.push(level.createAbstraction(
-      i, Math.min(numBoxes, i + this.abstractionSize)));
+  /** @private {!soko.Level} */
+  this.level_ = level;
+  /** @private {!Array.<!soko.Level>} */
+  this.abstractLevels_ = [];
+  /** @private {!Object} */
+  this.cache_ = {};
+  /** @private {number} */
+  this.abstractionSize_ = 1; // numBoxes >= 4 ? 2 : 1;
+  for (var i = 0; i < level.boxes.length; i += this.abstractionSize_) {
+    this.abstractLevels_.push(level.createAbstraction(
+      i, Math.min(level.boxes.length, i + this.abstractionSize_)));
   }
-  this.solver = new soko.Solver(soko.heuristic.SimpleHeuristic, soko.Heap);
+  // If you wanted to do this recursively (with a bigger abs size), 
+  // you can change the code above to choose abstraction size based on num
+  // boxes.
+  if (this.abstractionSize_ == 1) {
+    this.solver_ = new soko.Solver(soko.heuristic.SimpleHeuristic, soko.Heap);
+  } else {
+    this.solver_ = new soko.Solver(soko.heuristic.AbstractHeuristic, soko.Heap);
+  }
 };
 
 
 /** @override */
 soko.heuristic.AbstractHeuristic.prototype.evaluate = function(state) {
   var value = 0;
-  for (var i = 0; i < this.abstractLevels.length; i++) {
-    var start = this.abstractionSize * i;
-    var end = Math.min(state.boxes.length, start + this.abstractionSize);
-    var abstractState = state.createAbstraction(start, end);
+  for (var i = 0; i < this.abstractLevels_.length; i++) {
+    var startIndex = this.abstractionSize_ * i;
+    var endIndex = Math.min(state.boxes.length, startIndex + this.abstractionSize_);
+    var abstractState = state.createAbstraction(startIndex, endIndex);
     var id = abstractState.id();
-    var thisValue = this.cache[id];
+    var thisValue = this.cache_[id];
     if (thisValue === undefined) {
-      var solution = this.solver.solve(this.abstractLevels[i], abstractState);
+      var solution = this.solver_.solve(this.abstractLevels_[i], abstractState);
       thisValue = solution.length - 1;
+      // If solution is empty, it is an unreachable state.
       if (thisValue < 0) {
 	thisValue = 10000;
       }
-      this.cache[id] = thisValue;
+      this.cache_[id] = thisValue;
       for (var j = 0; j < solution.length; j++) {
-	this.cache[solution[j].id()] = j;
+	this.cache_[solution[j].id()] = j;
       }
     }
     value = Math.max(value, thisValue);

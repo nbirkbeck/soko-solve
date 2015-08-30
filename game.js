@@ -82,15 +82,15 @@ soko.game = function() {
     if (code == 32) {
       if (solution === undefined || solution.length == 0) {
 	var solvers = [
-//	  new soko.Solver(soko.heuristic.AbstractHeuristic, soko.Heap, false),
+	  new soko.Solver(soko.heuristic.AbstractHeuristic, soko.Heap, false),
 	  new soko.Solver(soko.heuristic.AbstractHeuristic, soko.Heap, true),
 //	  new soko.Solver(),
 //	  new soko.Solver(soko.heuristic.NullHeuristic, soko.Queue, true),
-//	  new soko.Solver(soko.heuristic.SimpleHeuristic, soko.Heap),
+	  new soko.Solver(soko.heuristic.SimpleHeuristic, soko.Heap),
 	  new soko.Solver(soko.heuristic.SimpleHeuristic, soko.Heap, true)
 	];
 	solvers.forEach(function(solver) {
-	   solver.print = true;
+	  // solver.print = true;
           solution = solver.solve(level, state);
 	  console.log(solver.solverStats);
 	});
