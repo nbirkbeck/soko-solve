@@ -26,12 +26,23 @@ soko.game = function() {
   var constants = soko.constants;
   var nameEl = document.getElementById('name');
   var resultsEl = document.getElementById('results');
+  var allResultsEl = document.getElementById('results-all');
+  var heuristicsEl = document.getElementById('heuristics');
   var canvas = document.getElementById('canvas');
   var context = canvas.getContext('2d');
   var level;
   var state;
   var solvers;
+  var heuristics;
   var solverIndex = 0;
+
+  function updateHeuristicsScores() {
+    var info = '';
+    heuristics.forEach(function(heuristic) {
+      info += heuristic[0] + ' ' + heuristic[1].evaluate(state) + '<br>';
+    });
+    heuristicsEl.innerHTML = info;
+  }
 
   /**
    * Advance to the next level.
@@ -53,7 +64,14 @@ soko.game = function() {
     level.draw(state, context);
     solution = [];
     solvers = [];
+    heuristics = [
+      ['Simple', new soko.heuristic.SimpleHeuristic(level)],
+      ['Better', new soko.heuristic.BetterHeuristic(level)],
+      ['Abstract', new soko.heuristic.AbstractHeuristic(level)]
+      //['Max', new soko.heuristic.MaxHeuristic(level)]
+    ];
     resultsEl.innerHTML = '';
+    updateHeuristicsScores();
   }
   
   /**
@@ -61,7 +79,7 @@ soko.game = function() {
    * using set timeout and queue the others after it is done so we can get some
    * quick hacky feedback
    */
-  function solveSingle() {
+  function solveSingle(finishedCallback) {
     if (solverIndex < solvers.length) {
       var solver = solvers[solverIndex];
       var solverSolution = solver[1].solve(level, state);
@@ -83,32 +101,63 @@ soko.game = function() {
 
     solverIndex++;
     if (solverIndex < solvers.length) {
-      setTimeout(solveSingle, 1);
+      setTimeout(solveSingle.bind(this, finishedCallback), 1);
+    } else if (finishedCallback) {
+      finishedCallback();
     }
   }
 
   /**
    * Queue up all the solvers to run.
    */
-  function solve() {
-    setTimeout(solveSingle, 1);
+  function solve(finishedCallback) {
     if (solution === undefined || solution.length == 0) {
       solverIndex = 0;
       solvers = [
-	["abstract+condense", new soko.Solver(soko.heuristic.AbstractHeuristic, soko.Heap, true)],
-	["abstract", new soko.Solver(soko.heuristic.AbstractHeuristic, soko.Heap, false)],
-	["simpleheur+condense", new soko.Solver(soko.heuristic.SimpleHeuristic, soko.Heap, true)],
-	["simpleheur", new soko.Solver(soko.heuristic.SimpleHeuristic, soko.Heap)],
-	["bfs+condense", new soko.Solver(soko.heuristic.NullHeuristic, soko.Queue, true)],
+	["abs+cond", new soko.Solver(soko.heuristic.AbstractHeuristic, soko.Heap, true)],
+	["abs", new soko.Solver(soko.heuristic.AbstractHeuristic, soko.Heap, false)],
+	["simple+cond", new soko.Solver(soko.heuristic.SimpleHeuristic, soko.Heap, true)],
+	["simple", new soko.Solver(soko.heuristic.SimpleHeuristic, soko.Heap)],
+	// Ideally we could use a queue here, which has less overhead, but that would give min
+	// number of box pushes (what box pusher uses) rather than min num moves.
+	["bfs+conde", new soko.Solver(soko.heuristic.NullHeuristic, soko.Heap, true)],
 	["bfs", new soko.Solver()]
       ];
-      solveSingle();
+      solveSingle(finishedCallback);
     }
   };
+
+  function solveAll() {
+    var results = '';
+    function solveFinished() {
+      var line = '';
+      if (results == '') {
+	line = '<table><thead><tr>';
+	solvers.forEach(function(solver) {
+	  line += '<td>' + solver[0] + '</td>';
+	});
+	line += '</tr></thead>';
+      }
+      line += '<tr>';
+      solvers.forEach(function(solver) {
+	line += '<td>' + solver[1].solverStats.elapsedTime + '</td>';
+      });
+      line += '</tr>';
+      results += line;
+      allResultsEl.innerHTML = results;
+
+      advanceLevel(1);
+      if (levelIndex > 0 || levelPackIndex > 0) {
+	solve(solveFinished);
+      }
+    };
+    solve(solveFinished);
+  }
 
   function move() {
     if (solution !== undefined && solution.length > 0) {
       state = solution.pop();
+      updateHeuristicsScores();
       level.draw(state, context);
     }
   }
@@ -117,7 +166,8 @@ soko.game = function() {
 
   document.getElementById('next').onclick = advanceLevel.bind(window, 1);
   document.getElementById('prev').onclick = advanceLevel.bind(window, -1);
-  document.getElementById('solve').onclick = solve;
+  document.getElementById('solve').onclick = function() { solve(undefined); };
+  document.getElementById('solve-all').onclick = solveAll;
   document.getElementById('move').onclick = move;
     
   document.addEventListener('keypress', function(event) {
@@ -136,7 +186,18 @@ soko.game = function() {
     }
     if (code == 115) {
       level.move(state, constants.Directions.DOWN);
+    } 
+    if (level) {
+      var invalid = new soko.heuristic.InvalidMap(level);
+      for (var y = 1; y < level.grid.length - 1; y++) {
+	for (var x = 1; x < level.grid[y].length - 1; x++) {
+	  if (invalid.isInvalidPoint([x, y])) {
+	    level.grid[y][x] |= 0x80;
+	  }
+	}
+      }
     }
+    updateHeuristicsScores();
     level.draw(state, context);
   }, false);
 };

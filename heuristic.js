@@ -31,26 +31,33 @@ soko.heuristic.MAX_SCORE = 10000;
  */
 soko.heuristic.InvalidMap = function(level) {
   this.map_ = {};
-  for (var i = 0; i < level.grid.length; ++i) {
-    for (var j = 0; j < level.grid[i].length; ++j) {
+  for (var i = 1; i < level.grid.length - 1; ++i) {
+    for (var j = 1; j < level.grid[i].length - 1; ++j) {
       var box = [j, i];
       var cellType = level.getCellType(box);
       if (cellType == constants.CellTypes.CROSS || 
 	  cellType == constants.CellTypes.WALL)
 	continue;
       var id = soko.State.pointToIndex(box);
-      if (this.map_[id]) continue;
-
-      var upBlocked = level.getCellType([box[0], box[1] - 1]) < constants.CellTypes.EMPTY;
-      var downBlocked = level.getCellType([box[0], box[1] + 1]) < constants.CellTypes.EMPTY;
-      var leftBlocked = level.getCellType([box[0] - 1, box[1]]) < constants.CellTypes.EMPTY;
-      var rightBlocked = level.getCellType([box[0] + 1, box[1]]) < constants.CellTypes.EMPTY;
+      var upBlocked = level.getCellType([box[0], box[1] - 1]) == constants.CellTypes.WALL;
+      var downBlocked = level.getCellType([box[0], box[1] + 1]) == constants.CellTypes.WALL;
+      var leftBlocked = level.getCellType([box[0] - 1, box[1]]) == constants.CellTypes.WALL;
+      var rightBlocked = level.getCellType([box[0] + 1, box[1]]) == constants.CellTypes.WALL;
       if ((leftBlocked || rightBlocked) && (upBlocked || downBlocked)) {
 	this.map_[id] = true;
       }
+      // Handle the cases:
+      // #   #  ######
+      // #####  #    #
       if ((upBlocked || downBlocked) && leftBlocked) {
 	this.tryMarkLine_(level, box, 0, [0, upBlocked ? -1 : 1]);
       }
+      // Handle the cases:
+      // ##  ##  
+      // #    #
+      // #    #
+      // #    #
+      // ##  ##
       if ((rightBlocked || leftBlocked) && upBlocked) {
 	this.tryMarkLine_(level, box, 1, [leftBlocked ? -1 : 1, 0]);
       }
@@ -59,12 +66,12 @@ soko.heuristic.InvalidMap = function(level) {
 };
 
 soko.heuristic.InvalidMap.prototype.tryMarkLine_ = function(level, pos, dir, blockOffset) {
-  var end = dir == 0 ? level.grid[pos[1]].length : level.grid.length;
+  var end = dir == 0 ? level.grid[pos[1]].length - 1 : level.grid.length - 1;
   var cur = [pos[0], pos[1]];
   for (var k = pos[dir] + 1; k < end; ++k) {
     cur[dir] = k;
     var curType = level.getCellType(cur);
-    if (curType < constants.CellTypes.EMPTY) {
+    if (curType == constants.CellTypes.WALL) {
       end = k;
       break;
     }
@@ -83,10 +90,15 @@ soko.heuristic.InvalidMap.prototype.tryMarkLine_ = function(level, pos, dir, blo
 
 soko.heuristic.InvalidMap.prototype.isInvalid = function(state) {
   for (var i = 0; i < state.boxes.length; ++i) {
-    if (this.map_[soko.State.pointToIndex(state.boxes[i])])
+    if (this.isInvalidPoint(state.boxes[i]))
       return true;
   }
   return false;
+};
+
+
+soko.heuristic.InvalidMap.prototype.isInvalidPoint = function(point) {
+  return this.map_[soko.State.pointToIndex(point)];
 };
 
 
@@ -151,7 +163,7 @@ SimpleHeuristic.prototype.evaluate = function(state) {
     boxDistance = Math.min(soko.math.vectorDistanceL1(box, state.pos), 
 			   boxDistance);
   }
-  return value + boxDistance;
+  return value + Math.max(0, boxDistance - 1);
 };
 
 
@@ -170,6 +182,9 @@ var BetterHeuristic = soko.heuristic.BetterHeuristic;
 
 /** @override */
 BetterHeuristic.prototype.evaluate = function(state) {
+  if (state.boxes.length > 4) {
+    return 0;
+  }
   var numOptions = soko.math.factorial(state.boxes.length);
   var minValue = 1e10;
   
@@ -184,15 +199,13 @@ BetterHeuristic.prototype.evaluate = function(state) {
     distanceMaps.push(this.level.computeShortestPath(startState));
   }
    */
-
   for (var i = 0; i < numOptions; ++i) {
     var option = i;
     var taken = [];
     var dists = [];
     var value = 0;
-    
     for (var j = 0; j < state.boxes.length; ++j) {
-      var divisor = state.boxes.length - j - 1;
+      var divisor = state.boxes.length - j;
       var index = option % divisor;
       var k = 0;
       while (index > 0 || taken[k] === true) {
@@ -206,7 +219,7 @@ BetterHeuristic.prototype.evaluate = function(state) {
       var box = state.boxes[j];
       var dist = soko.math.vectorDistanceL1(this.level.crosses[k], box); 
       // var dist = distanceMaps[j][soko.State.pointToIndex(this.level.crosses[k])] - 1;
-      option /= divisor;
+      option = Math.floor(option / divisor);
       value += dist;
       taken[k] = true;
       dists[j] = dist;
@@ -215,21 +228,26 @@ BetterHeuristic.prototype.evaluate = function(state) {
     for (var k = 0; k < dists.length - 1; ++k) {
       value += dists[k];
     }
-    if (value < minValue) {
-      minValue = value;
-    }
+    minValue = Math.min(value, minValue);
   }
-  return minValue;
+
+  var boxDistance = soko.heuristic.MAX_SCORE;
+  for (var i = 0; i < state.boxes.length; ++i) {
+    boxDistance = Math.min(
+      soko.math.vectorDistanceL1(state.boxes[i], state.pos), boxDistance);
+  }
+  return minValue + Math.max(0, boxDistance - 1);
 };
 
 
 /**
  * A heuristic that abstracts out the problem and solves a simple problem.
  * @param {!soko.Level} level
+ * @param {number=} opt_abstractionSize=} 
  * @implements {soko.heuristic.Heuristic}
  * @constructor
  */
-soko.heuristic.AbstractHeuristic = function(level) {
+soko.heuristic.AbstractHeuristic = function(level, opt_abstractionSize) {
   /** @private {!soko.Level} */
   this.level_ = level;
   /** @private {!Array.<!soko.Level>} */
@@ -237,7 +255,7 @@ soko.heuristic.AbstractHeuristic = function(level) {
   /** @private {!Object} */
   this.cache_ = {};
   /** @private {number} */
-  this.abstractionSize_ = 1; // numBoxes >= 4 ? 2 : 1;
+  this.abstractionSize_ = opt_abstractionSize || 1;
   for (var i = 0; i < level.boxes.length; i += this.abstractionSize_) {
     this.abstractLevels_.push(level.createAbstraction(
       i, Math.min(level.boxes.length, i + this.abstractionSize_)));
@@ -277,6 +295,31 @@ soko.heuristic.AbstractHeuristic.prototype.evaluate = function(state) {
     value = Math.max(value, thisValue);
   }
   return value;
+};
+
+
+/**
+ * @param {!soko.Level} level
+ * @implements {soko.heuristic.Heuristic}
+ * @constructor
+ */
+soko.heuristic.MaxHeuristic = function(level) {
+  this.heuristics_ = [
+    new soko.heuristic.AbstractHeuristic(level),
+    new soko.heuristic.AbstractHeuristic(level, 2),
+    new soko.heuristic.BetterHeuristic(level),
+    new soko.heuristic.SimpleHeuristic(level)
+  ];
+};
+
+
+/** @override */
+soko.heuristic.MaxHeuristic.prototype.evaluate = function(state) {
+  var maxValue = 0;
+  this.heuristics_.forEach(function (h) {
+    maxValue = Math.max(h.evaluate(state), maxValue);
+  });
+  return maxValue;
 };
 });
 

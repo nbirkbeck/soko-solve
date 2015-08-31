@@ -97,6 +97,13 @@ Level.prototype.draw = function(state, context) {
 	context.moveTo(j * BLOCK_SIZE, i * BLOCK_SIZE);
 	context.lineTo((j + 1) * BLOCK_SIZE, (i + 1) * BLOCK_SIZE);
 	context.stroke();
+      } else if (this.grid[i][j] > 0x4) {
+	context.strokeWidth = 2;
+	context.strokeStyle = '#F00';
+	context.beginPath();
+	context.moveTo(j * BLOCK_SIZE + 8, (i + 1)* BLOCK_SIZE - 8);
+	context.lineTo((j + 1)* BLOCK_SIZE - 8, i * BLOCK_SIZE + 8);
+	context.stroke();
       }
     }
   }

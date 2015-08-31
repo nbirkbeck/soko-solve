@@ -9,11 +9,14 @@
   left: 50%;
   margin-left: -192px;
 }
+
 #results {
   position: relative;
   width: 100%;
   border: 1px solid #eee;
 }
+
+#results-all table,
 #results table {
   width: 100%;
 }
@@ -22,6 +25,7 @@ body {
   margin-left: 120px;
   margin-right: 120px;
 }
+
 .container {
   position: relative;
   width: 500px;
@@ -43,9 +47,21 @@ body {
       &nbsp;&nbsp;
       <button id="solve">solve</button>
       <button id="move">move</button>
+      &nbsp;&nbsp;
+      <button id="solve-all">solve all</button>
+      <div>
+	<h3>Heuristic values</h3>
+	<div id="heuristics">
+	</div>
+      </div>
       <div>
 	<h3>Solution stats</h3>
 	<div id="results">
+	</div>
+      </div>
+      <div>
+	<h3>All solution stats</h3>
+	<div id="results-all">
 	</div>
       </div>
     </div>
