@@ -27,25 +27,25 @@ didn't seem to give huge gains in the abstract case, but does help out the other
 simple heuristics and when added into the search directly gives a huge boost
 over the BFS. Some of the BFS would not complete on cases with lots of blocks.
 (e.g., "microa level:7"). However, these are still the cases where the abstraction
-still performs best:
+still performs best (but the margin is smaller):
 
 "microa level: 7"
-name   elapsed time	expanded
-abstract+condense	0.352	2541
-abstract		0.528	11691
-simpleheur+condense	2.94	32457
-simpleheur		3.462	122118
-bfs+condense		1.72	23327
-bfs			8.645	388377
+name	elapsed time	expanded	sol.length
+abs+cond	0.534	2517		27
+abs		0.973	11700		27
+simple+cond	0.551	3213		27
+simple		0.97	16518		27
+bfs+conde	0.594	3963		27
+bfs		0.939	20264		27
 
 "microc level: 19"
-name	elapsed time	expanded
-abstract+condense	0.655	3434
-abstract		0.67	12469
-simpleheur+condense	3.916	25933
-simpleheur		3.236	87921
-bfs+condense		67.114	220000 (didnt finish)
-bfs			64.954	460000 (didnt finish)
+name	elapsed time	expanded	sol.length
+abs+cond	2.553	9335		39
+abs		5.269	50426		39
+simple+cond	1.821	9730		39
+simple		3.963	56553		39
+bfs+conde	2.154	12324		39
+bfs		4.399	75512		39
 
 The reason that the invalid states didn't help the abstracted heuristic, and
 the reason that the abstracted heuristic was performing well was because it was

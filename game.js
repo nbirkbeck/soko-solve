@@ -187,7 +187,8 @@ soko.game = function() {
     if (code == 115) {
       level.move(state, constants.Directions.DOWN);
     } 
-    if (level) {
+    if (code == 63) {  // ?
+      // Show the invalid states for this level.
       var invalid = new soko.heuristic.InvalidMap(level);
       for (var y = 1; y < level.grid.length - 1; y++) {
 	for (var x = 1; x < level.grid[y].length - 1; x++) {
