@@ -87,24 +87,31 @@ bfs		      9.402	983861	165
 
 Some other interesting timings:
 microc level:12
-name   elapsed time   expanded
-abstract+condense     0.456	9679
-abstract	      1.366	52603
-simpleheur+condense   0.321	10889
-simpleheur	      0.981	57751
-bfs+condense	      0.286	11767
-bfs		      0.914	61080
+name   elapsed time	expanded	sol.length
+abs+cond       0.341	9638		65
+abs	       1.124	52603		65
+simple+cond    0.276	10845		65
+simple	       0.786	57751		65
+bfs+conde      0.266	11642		65
+bfs	       0.596	61080		65
 
+microc level:14
+name	       elapsed time		expanded	sol.length
+abs+cond       0.351   3000		26
+abs	       0.47    13495		26
+simple+cond    0.213   3043		26
+simple	       0.352   14833		26
+bfs+conde      0.66    8990		26
+bfs	       1.108   48850		26
 
 microc level:20
-name		elapsed time	expanded
-abstract+condense     0.093   1599
-abstract	      0.233   9425
-simpleheur+condense   0.049   2152
-simpleheur	      0.169   11958
-bfs+condense	      0.091   4211
-bfs		      0.174   15449
-
+name   elapsed time	expanded	sol.length
+abs+cond       0.05	1612		52
+abs	       0.162	9425		52
+simple+cond    0.043	2108		52
+simple	       0.139	11958		52
+bfs+conde      0.058	2475		52
+bfs	       0.14	15449		52
 
 Conclusion. The heuristics all kind of suck, or are too expensive to compute
 and don't give any benefit. Adding condensed moves and avoiding terminal states
