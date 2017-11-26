@@ -1,2 +1,3 @@
-binary/soko-compiled.js: game.js
-	closure-compiler --js_output_file=binary/soko-compiled.js *.js levels/*.js
+SOURCES := $(wildcard *.js levels/*.js)
+binary/soko-compiled.js: $(SOURCES)
+	closure-compiler --js_output_file=binary/soko-compiled.js $(SOURCES)

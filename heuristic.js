@@ -187,11 +187,11 @@ BetterHeuristic.prototype.evaluate = function(state) {
   }
   var numOptions = soko.math.factorial(state.boxes.length);
   var minValue = 1e10;
-  
+
   if (this.invalidMap_.isInvalid(state)) {
     return soko.heuristic.MAX_SCORE;
   }
-  
+
   /* This didn't help either...
   var distanceMaps = [];
   for (var i = 0; i < state.boxes.length; ++i) {

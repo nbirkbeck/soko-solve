@@ -86,7 +86,7 @@ Solver.prototype.solve = function(level, state) {
     getNeighbors = level.getNeighborsCondensed.bind(level);
   }
   Q.push(node, node.h);
-  
+
   while (!Q.empty()) {
     var top = Q.pop();
     node = top.value;
@@ -95,12 +95,11 @@ Solver.prototype.solve = function(level, state) {
     }
     if (numVisited % 20000 == 0) {
       var elapsedTime = (Date.now() - startTime) / 1000.0;
-      if (elapsedTime > 60) break;
+      if (elapsedTime > 120) break;
     }
-    
     visited[node.id] = true;
     numVisited++;
-    
+
     if (level.isGoal(node.state)) {
       solution = this.backtrack_(level, node);
       break;
